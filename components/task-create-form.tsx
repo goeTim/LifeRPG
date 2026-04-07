@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AttributeKey, TaskType } from "@/types/domain";
 
@@ -20,24 +20,37 @@ const WEEK_DAYS = [
   { value: "fri", label: "Fr" },
   { value: "sat", label: "Sa" },
   { value: "sun", label: "So" }
-];
+] as const;
+
+type HabitScheduleMode = "days" | "frequency";
 
 export function TaskCreateForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [taskType, setTaskType] = useState<TaskType>("one_time");
+  const [scheduleMode, setScheduleMode] = useState<HabitScheduleMode>("days");
+
+  const onScheduleModeChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setScheduleMode(event.target.value as HabitScheduleMode);
+  };
 
   return (
     <form
       className="card mx-auto w-full max-w-2xl space-y-4"
       action={async (formData) => {
         setLoading(true);
+        setError(null);
         const response = await fetch("/api/tasks", { method: "POST", body: formData });
+        const payload = await response.json();
+
         if (response.ok) {
           router.push("/dashboard");
           router.refresh();
           return;
         }
+
+        setError(payload.error ?? "Task konnte nicht gespeichert werden.");
         setLoading(false);
       }}
     >
@@ -89,23 +102,40 @@ export function TaskCreateForm() {
       ) : (
         <>
           <label className="space-y-1 text-sm">
-            <span>Wie oft pro Woche?</span>
-            <input className="input" name="weekly_frequency" type="number" min={1} max={7} defaultValue={3} />
+            <span>Planung für Gewohnheit</span>
+            <select
+              className="input"
+              name="schedule_mode"
+              value={scheduleMode}
+              onChange={onScheduleModeChange}
+            >
+              <option value="days">Bestimmte Wochentage</option>
+              <option value="frequency">Anzahl pro Woche</option>
+            </select>
           </label>
 
-          <fieldset className="space-y-2 text-sm">
-            <legend className="mb-1">An welchen Tagen?</legend>
-            <div className="grid grid-cols-4 gap-2 md:grid-cols-7">
-              {WEEK_DAYS.map((day) => (
-                <label key={day.value} className="flex items-center gap-2 rounded-lg border border-slate-700 px-2 py-2">
-                  <input type="checkbox" name="scheduled_days" value={day.value} />
-                  {day.label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          {scheduleMode === "days" ? (
+            <fieldset className="space-y-2 text-sm">
+              <legend className="mb-1">An welchen Tagen?</legend>
+              <div className="grid grid-cols-4 gap-2 md:grid-cols-7">
+                {WEEK_DAYS.map((day) => (
+                  <label key={day.value} className="flex items-center gap-2 rounded-lg border border-slate-700 px-2 py-2">
+                    <input type="checkbox" name="scheduled_days" value={day.value} />
+                    {day.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : (
+            <label className="space-y-1 text-sm">
+              <span>Wie oft pro Woche?</span>
+              <input className="input" name="weekly_frequency" type="number" min={1} max={7} defaultValue={3} />
+            </label>
+          )}
         </>
       )}
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
       <button className="btn-primary w-full" type="submit" disabled={loading}>
         {loading ? "Speichern..." : "Speichern"}

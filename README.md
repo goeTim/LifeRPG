@@ -31,6 +31,7 @@ Life RPG ist eine Gamification-Web-App auf Basis von **Next.js + Supabase**. Nut
    - `supabase/schema.sql`
 4. Seed ausführen:
    - `supabase/seed.sql`
+   - Optional für bestehende DBs: `supabase/migrations/20260407_add_habit_scheduling.sql`
 5. Dev-Server starten:
    ```bash
    npm run dev
@@ -63,11 +64,13 @@ types/
   - Typ: Einmaliges Task oder Gewohnheit
   - XP-Wert
   - optionaler Attribut-Bonus
-  - bei Gewohnheiten: `weekly_frequency` und `scheduled_days`
+  - bei Gewohnheiten: **entweder** `scheduled_days` (Wochentage) **oder** `weekly_frequency` (Anzahl pro Woche)
   - bei einmaligen Tasks: optionales `due_date`
 - Dashboard zeigt nur die **heute relevanten Tasks**:
   - einmalige Tasks für heute/fällig
   - Gewohnheiten entsprechend den geplanten Wochentagen
+- Falls Tasks nicht gespeichert werden und ein Schema-Fehler kommt:
+  - aktuelles `supabase/schema.sql` erneut im Supabase SQL Editor ausführen
 - Task-Abschluss triggert XP/Level-Up + Attributsteigerung
 - Achievement-Regeln:
   - Erstes Task
