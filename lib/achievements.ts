@@ -22,14 +22,32 @@ export function computeStreak(previous: string | null, nowISO: string) {
   const prev = new Date(previous);
   const now = new Date(nowISO);
   const dayMs = 1000 * 60 * 60 * 24;
-  const diff = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate())) / dayMs);
+  const diff = Math.floor(
+    (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) -
+      Date.UTC(prev.getUTCFullYear(), prev.getUTCMonth(), prev.getUTCDate())) /
+      dayMs
+  );
 
   if (diff === 0) return null;
   if (diff === 1) return "increment";
   return "reset";
 }
 
+export function weekdayUtc(dateISO: string) {
+  return new Date(dateISO).getUTCDay();
+}
+
+export function habitDueToday(task: Task, nowISO: string) {
+  if (!task.is_habit) return false;
+  if (!task.habit_days || task.habit_days.length === 0) return true;
+  return task.habit_days.includes(weekdayUtc(nowISO));
+}
+
 export function todayTasks(tasks: Task[]) {
-  const today = new Date().toISOString().slice(0, 10);
-  return tasks.filter((task) => !task.due_date || task.due_date === today);
+  const nowISO = new Date().toISOString();
+  const today = nowISO.slice(0, 10);
+  return tasks.filter((task) => {
+    if (task.is_habit) return habitDueToday(task, nowISO);
+    return !task.due_date || task.due_date === today;
+  });
 }

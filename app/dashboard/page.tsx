@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AchievementList } from "@/components/achievement-list";
 import { ProgressBar } from "@/components/progress-bar";
-import { TaskForm } from "@/components/task-form";
 import { TaskList } from "@/components/task-list";
 import { todayTasks } from "@/lib/achievements";
 import { calculateLevelProgress } from "@/lib/leveling";
@@ -56,16 +56,17 @@ export default async function DashboardPage() {
           </div>
           <ProgressBar value={progress.pct} />
           <p className="text-sm text-slate-300">
-            {profile.xp} / {progress.xpNeeded} XP bis zum nächsten Level
+            {profile.xp} / {progress.xpNeeded} XP bis zum nächsten Level · {profile.points ?? 0} Punkte
           </p>
+          <Link className="btn-primary inline-flex" href="/tasks">
+            Tasks & Gewohnheiten verwalten
+          </Link>
         </div>
 
         <TaskList tasks={todaysTasks} />
       </section>
 
       <aside className="space-y-6">
-        <TaskForm />
-
         <div className="card space-y-3">
           <h2 className="text-lg font-semibold">Attribute</h2>
           {(Object.keys(ATTR_LABELS) as (keyof typeof ATTR_LABELS)[]).map((attr) => (
