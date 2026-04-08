@@ -5,7 +5,16 @@ import { SettingsSectionKey } from "@/components/settings/settings-sidebar";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { CustomReward, ShopItem, Skill, Task } from "@/types/domain";
 
-const VALID_SECTIONS: SettingsSectionKey[] = ["skills", "rewards", "items", "tasks", "habits"];
+const VALID_SECTIONS: SettingsSectionKey[] = [
+  "skills",
+  "rewards",
+  "items",
+  "tasks",
+  "habits",
+  "account-name",
+  "account-password",
+  "account-reset"
+];
 
 export default async function SettingsPage({ searchParams }: { searchParams?: { section?: string } }) {
   const supabase = createSupabaseServerClient();
@@ -17,7 +26,8 @@ export default async function SettingsPage({ searchParams }: { searchParams?: { 
     redirect("/login");
   }
 
-  const [{ data: skills }, { data: rewards }, { data: items }, { data: tasks }] = await Promise.all([
+  const [{ data: profile }, { data: skills }, { data: rewards }, { data: items }, { data: tasks }] = await Promise.all([
+    supabase.from("profiles").select("name").eq("id", user.id).single<{ name: string }>(),
     supabase.from("skills").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).returns<Skill[]>(),
     supabase.from("custom_rewards").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).returns<CustomReward[]>(),
     supabase.from("shop_items").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).returns<ShopItem[]>(),
@@ -34,7 +44,7 @@ export default async function SettingsPage({ searchParams }: { searchParams?: { 
         <div>
           <p className="text-xs uppercase tracking-wide text-cyan-300">Settings</p>
           <h1 className="text-3xl font-bold">Verwaltungszentrale</h1>
-          <p className="text-sm text-slate-300">Konfiguriere Skills, Rewards, Items, Tasks und Gewohnheiten in einer Navigation.</p>
+          <p className="text-sm text-slate-300">Konfiguriere Progression, Aktivität und Account in einer zentralen Navigation.</p>
         </div>
         <div className="flex gap-2">
           <Link className="rounded-xl border border-slate-600 px-4 py-2 font-semibold" href="/dashboard">
@@ -46,7 +56,14 @@ export default async function SettingsPage({ searchParams }: { searchParams?: { 
         </div>
       </div>
 
-      <SettingsPageShell activeSection={activeSection} skills={skills ?? []} rewards={rewards ?? []} items={items ?? []} tasks={tasks ?? []} />
+      <SettingsPageShell
+        activeSection={activeSection}
+        skills={skills ?? []}
+        rewards={rewards ?? []}
+        items={items ?? []}
+        tasks={tasks ?? []}
+        initialName={profile?.name ?? "Abenteurer"}
+      />
     </main>
   );
 }

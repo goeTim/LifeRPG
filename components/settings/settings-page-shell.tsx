@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AccountManagementPanel } from "@/components/settings/account-management-panel";
 import { HabitsManagementPanel } from "@/components/settings/habits-management-panel";
 import { ItemsManagementPanel } from "@/components/settings/items-management-panel";
 import { RewardsManagementPanel } from "@/components/settings/rewards-management-panel";
@@ -16,9 +17,10 @@ type Props = {
   rewards: CustomReward[];
   items: ShopItem[];
   tasks: Task[];
+  initialName: string;
 };
 
-export function SettingsPageShell({ activeSection, skills, rewards, items, tasks }: Props) {
+export function SettingsPageShell({ activeSection, skills, rewards, items, tasks, initialName }: Props) {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const counts = {
@@ -26,7 +28,10 @@ export function SettingsPageShell({ activeSection, skills, rewards, items, tasks
     rewards: rewards.length,
     items: items.length,
     tasks: tasks.filter((task) => !task.is_habit).length,
-    habits: tasks.filter((task) => task.is_habit).length
+    habits: tasks.filter((task) => task.is_habit).length,
+    "account-name": 0,
+    "account-password": 0,
+    "account-reset": 0
   } as const;
 
   return (
@@ -47,6 +52,9 @@ export function SettingsPageShell({ activeSection, skills, rewards, items, tasks
         {activeSection === "items" && <ItemsManagementPanel initialItems={items} />}
         {activeSection === "tasks" && <TasksManagementPanel initialTasks={tasks.filter((task) => !task.is_habit)} skills={skills} />}
         {activeSection === "habits" && <HabitsManagementPanel initialHabits={tasks.filter((task) => task.is_habit)} skills={skills} />}
+        {(activeSection === "account-name" || activeSection === "account-password" || activeSection === "account-reset") && (
+          <AccountManagementPanel initialName={initialName} />
+        )}
       </SettingsContentLayout>
     </div>
   );
