@@ -53,7 +53,7 @@ export function SettingsPageShell({ activeSection, skills, rewards, items, tasks
         {activeSection === "tasks" && <TasksManagementPanel initialTasks={tasks.filter((task) => !task.is_habit)} skills={skills} />}
         {activeSection === "habits" && <HabitsManagementPanel initialHabits={tasks.filter((task) => task.is_habit)} skills={skills} />}
         {(activeSection === "account-name" || activeSection === "account-password" || activeSection === "account-reset") && (
-          <AccountManagementPanel initialName={initialName} />
+          <AccountManagementPanel initialName={initialName} activeSection={activeSection} />
         )}
       </SettingsContentLayout>
     </div>

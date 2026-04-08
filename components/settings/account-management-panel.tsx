@@ -1,10 +1,12 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { SettingsSectionKey } from "@/components/settings/settings-sidebar";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 type Props = {
   initialName: string;
+  activeSection: Extract<SettingsSectionKey, "account-name" | "account-password" | "account-reset">;
 };
 
 type Status = { type: "success" | "error"; message: string } | null;
@@ -16,15 +18,11 @@ async function apiRequest(url: string, options: RequestInit) {
   });
 
   const payload = (await response.json().catch(() => ({}))) as { error?: string; message?: string; name?: string };
-
-  if (!response.ok) {
-    throw new Error(payload.error ?? "Aktion fehlgeschlagen.");
-  }
-
+  if (!response.ok) throw new Error(payload.error ?? "Aktion fehlgeschlagen.");
   return payload;
 }
 
-export function AccountManagementPanel({ initialName }: Props) {
+export function AccountManagementPanel({ initialName, activeSection }: Props) {
   const [currentName, setCurrentName] = useState(initialName);
   const [nextName, setNextName] = useState(initialName);
   const [nameStatus, setNameStatus] = useState<Status>(null);
@@ -48,17 +46,10 @@ export function AccountManagementPanel({ initialName }: Props) {
   async function handleNameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNameStatus(null);
-
     const trimmed = nextName.trim();
-    if (trimmed.length < 2) {
-      setNameStatus({ type: "error", message: "Der Anzeigename muss mindestens 2 Zeichen lang sein." });
-      return;
-    }
 
-    if (trimmed === currentName) {
-      setNameStatus({ type: "error", message: "Der neue Name entspricht bereits deinem aktuellen Namen." });
-      return;
-    }
+    if (trimmed.length < 2) return setNameStatus({ type: "error", message: "Der Anzeigename muss mindestens 2 Zeichen lang sein." });
+    if (trimmed === currentName) return setNameStatus({ type: "error", message: "Der neue Name entspricht bereits deinem aktuellen Namen." });
 
     try {
       setIsSavingName(true);
@@ -76,18 +67,13 @@ export function AccountManagementPanel({ initialName }: Props) {
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPasswordStatus(null);
-
-    if (passwordValidationError) {
-      setPasswordStatus({ type: "error", message: passwordValidationError });
-      return;
-    }
+    if (passwordValidationError) return setPasswordStatus({ type: "error", message: passwordValidationError });
 
     try {
       setIsSavingPassword(true);
       const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-
       setPassword("");
       setPasswordConfirmation("");
       setPasswordStatus({ type: "success", message: "Passwort wurde erfolgreich geändert." });
@@ -100,10 +86,8 @@ export function AccountManagementPanel({ initialName }: Props) {
 
   async function handleReset() {
     setResetStatus(null);
-
     if (resetConfirmationText.trim().toUpperCase() !== "RESET") {
-      setResetStatus({ type: "error", message: 'Bitte gib zur Bestätigung exakt "RESET" ein.' });
-      return;
+      return setResetStatus({ type: "error", message: 'Bitte gib zur Bestätigung exakt "RESET" ein.' });
     }
 
     try {
@@ -123,90 +107,78 @@ export function AccountManagementPanel({ initialName }: Props) {
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5">
         <p className="mb-1 text-xs uppercase tracking-[0.2em] text-cyan-300">Account</p>
-        <h2 className="text-2xl font-semibold">Konto verwalten</h2>
-        <p className="mt-1 text-sm text-slate-400">Passe deinen Anzeigenamen und dein Passwort an oder setze deinen Charakterfortschritt zurück.</p>
+        <h2 className="text-2xl font-semibold">
+          {activeSection === "account-name" && "Name ändern"}
+          {activeSection === "account-password" && "Passwort ändern"}
+          {activeSection === "account-reset" && "Fortschritt zurücksetzen"}
+        </h2>
       </div>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <h3 className="text-lg font-semibold">Name ändern</h3>
-        <p className="mt-1 text-sm text-slate-400">Aktueller Anzeigename: <span className="font-medium text-slate-200">{currentName}</span></p>
-
-        <form className="mt-4 space-y-3" onSubmit={handleNameSubmit}>
-          <label className="block space-y-1 text-xs uppercase tracking-wide text-slate-400">
-            <span>Neuer Anzeigename</span>
-            <input className="input" value={nextName} onChange={(event) => setNextName(event.target.value)} maxLength={40} />
-          </label>
-          <button className="btn-primary" type="submit" disabled={isSavingName}>
-            {isSavingName ? "Speichern..." : "Speichern"}
-          </button>
-          {nameStatus && (
-            <p className={`rounded-lg border px-3 py-2 text-sm ${nameStatus.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-rose-500/40 bg-rose-500/10 text-rose-200"}`}>
-              {nameStatus.message}
-            </p>
-          )}
-        </form>
-      </section>
-
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <h3 className="text-lg font-semibold">Passwort ändern</h3>
-        <p className="mt-1 text-sm text-slate-400">Nutze ein sicheres Passwort mit mindestens 8 Zeichen.</p>
-
-        <form className="mt-4 space-y-3" onSubmit={handlePasswordSubmit}>
-          <label className="block space-y-1 text-xs uppercase tracking-wide text-slate-400">
-            <span>Neues Passwort</span>
-            <input className="input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" />
-          </label>
-          <label className="block space-y-1 text-xs uppercase tracking-wide text-slate-400">
-            <span>Passwort bestätigen</span>
-            <input
-              className="input"
-              type="password"
-              value={passwordConfirmation}
-              onChange={(event) => setPasswordConfirmation(event.target.value)}
-              autoComplete="new-password"
-            />
-          </label>
-
-          {passwordValidationError && <p className="text-sm text-amber-300">{passwordValidationError}</p>}
-
-          <button className="btn-primary" type="submit" disabled={isSavingPassword || !!passwordValidationError || !password || !passwordConfirmation}>
-            {isSavingPassword ? "Speichern..." : "Speichern"}
-          </button>
-
-          {passwordStatus && (
-            <p
-              className={`rounded-lg border px-3 py-2 text-sm ${
-                passwordStatus.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-rose-500/40 bg-rose-500/10 text-rose-200"
-              }`}
-            >
-              {passwordStatus.message}
-            </p>
-          )}
-        </form>
-      </section>
-
-      <section className="rounded-2xl border border-rose-700/40 bg-rose-950/20 p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-rose-300">Danger Zone</p>
-        <h3 className="mt-1 text-lg font-semibold text-rose-100">Fortschritt zurücksetzen</h3>
-        <p className="mt-2 text-sm text-rose-200/90">
-          Diese Aktion setzt deinen Charakter- und Spielfortschritt zurück (Level, XP, Gold, Attribute, Skills, Inventar und aktive Titel).
-          Tasks und Gewohnheiten bleiben bestehen.
-        </p>
-
-        <button
-          type="button"
-          className="mt-4 rounded-xl border border-rose-500/60 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/30"
-          onClick={() => setIsResetOpen(true)}
-        >
-          Charakterfortschritt zurücksetzen
-        </button>
-
-        {resetStatus && (
-          <p className={`mt-3 rounded-lg border px-3 py-2 text-sm ${resetStatus.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-rose-500/40 bg-rose-500/10 text-rose-100"}`}>
-            {resetStatus.message}
+      {activeSection === "account-name" && (
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+          <h3 className="text-lg font-semibold">Name ändern</h3>
+          <p className="mt-1 text-sm text-slate-400">
+            Aktueller Anzeigename: <span className="font-medium text-slate-200">{currentName}</span>
           </p>
-        )}
-      </section>
+
+          <form className="mt-4 space-y-3" onSubmit={handleNameSubmit}>
+            <label className="block space-y-1 text-xs uppercase tracking-wide text-slate-400">
+              <span>Neuer Anzeigename</span>
+              <input className="input" value={nextName} onChange={(event) => setNextName(event.target.value)} maxLength={40} />
+            </label>
+            <button className="btn-primary" type="submit" disabled={isSavingName}>
+              {isSavingName ? "Speichern..." : "Speichern"}
+            </button>
+            {nameStatus && <p className={`rounded-lg border px-3 py-2 text-sm ${nameStatus.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-rose-500/40 bg-rose-500/10 text-rose-200"}`}>{nameStatus.message}</p>}
+          </form>
+        </section>
+      )}
+
+      {activeSection === "account-password" && (
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
+          <h3 className="text-lg font-semibold">Passwort ändern</h3>
+          <p className="mt-1 text-sm text-slate-400">Nutze ein sicheres Passwort mit mindestens 8 Zeichen.</p>
+
+          <form className="mt-4 space-y-3" onSubmit={handlePasswordSubmit}>
+            <label className="block space-y-1 text-xs uppercase tracking-wide text-slate-400">
+              <span>Neues Passwort</span>
+              <input className="input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" />
+            </label>
+            <label className="block space-y-1 text-xs uppercase tracking-wide text-slate-400">
+              <span>Passwort bestätigen</span>
+              <input className="input" type="password" value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} autoComplete="new-password" />
+            </label>
+
+            {passwordValidationError && <p className="text-sm text-amber-300">{passwordValidationError}</p>}
+
+            <button className="btn-primary" type="submit" disabled={isSavingPassword || !!passwordValidationError || !password || !passwordConfirmation}>
+              {isSavingPassword ? "Speichern..." : "Speichern"}
+            </button>
+            {passwordStatus && <p className={`rounded-lg border px-3 py-2 text-sm ${passwordStatus.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-rose-500/40 bg-rose-500/10 text-rose-200"}`}>{passwordStatus.message}</p>}
+          </form>
+        </section>
+      )}
+
+      {activeSection === "account-reset" && (
+        <section className="rounded-2xl border border-rose-700/40 bg-rose-950/20 p-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-rose-300">Danger Zone</p>
+          <h3 className="mt-1 text-lg font-semibold text-rose-100">Fortschritt zurücksetzen</h3>
+          <p className="mt-2 text-sm text-rose-200/90">
+            Diese Aktion setzt deinen Charakter- und Spielfortschritt zurück (Level, XP, Gold, Attribute, Skills, Inventar und aktive Titel).
+            Tasks und Gewohnheiten bleiben bestehen.
+          </p>
+
+          <button
+            type="button"
+            className="mt-4 rounded-xl border border-rose-500/60 bg-rose-500/20 px-4 py-2 text-sm font-semibold text-rose-100 transition hover:bg-rose-500/30"
+            onClick={() => setIsResetOpen(true)}
+          >
+            Charakterfortschritt zurücksetzen
+          </button>
+
+          {resetStatus && <p className={`mt-3 rounded-lg border px-3 py-2 text-sm ${resetStatus.type === "success" ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200" : "border-rose-500/40 bg-rose-500/10 text-rose-100"}`}>{resetStatus.message}</p>}
+        </section>
+      )}
 
       {isResetOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -215,12 +187,7 @@ export function AccountManagementPanel({ initialName }: Props) {
             <p className="text-sm text-slate-300">
               Diese Aktion ist nicht rückgängig zu machen. Zur Bestätigung gib bitte <span className="font-semibold text-rose-300">RESET</span> in das Feld ein.
             </p>
-            <input
-              className="input border-rose-600/40 focus:border-rose-400"
-              value={resetConfirmationText}
-              onChange={(event) => setResetConfirmationText(event.target.value)}
-              placeholder="RESET"
-            />
+            <input className="input border-rose-600/40 focus:border-rose-400" value={resetConfirmationText} onChange={(event) => setResetConfirmationText(event.target.value)} placeholder="RESET" />
 
             <div className="flex flex-wrap justify-end gap-2">
               <button
