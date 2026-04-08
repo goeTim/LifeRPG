@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
+function isMissingColumnError(message: string, column: string) {
+  return message.toLowerCase().includes(column.toLowerCase()) && message.toLowerCase().includes("column");
+}
+
 export async function POST(request: Request) {
   const supabase = createSupabaseServerClient();
   const {
@@ -18,14 +22,21 @@ export async function POST(request: Request) {
     .map((day) => Number(day))
     .filter((day) => !Number.isNaN(day));
 
-  const payload = {
+  const title = String(formData.get("title") ?? "").trim();
+  const category = String(formData.get("category") ?? "General").trim() || "General";
+  const xpValue = Number(formData.get("xp_value") ?? 20);
+  const pointsValue = Number(formData.get("points_value") ?? 10);
+  const attributeBonus = (formData.get("attribute_bonus") || null) as string | null;
+  const dueDate = !isHabit && formData.get("due_date") ? String(formData.get("due_date")) : null;
+
+  const fullPayload = {
     user_id: user.id,
-    title: String(formData.get("title") ?? "").trim(),
-    category: String(formData.get("category") ?? "General").trim() || "General",
-    xp_value: Number(formData.get("xp_value") ?? 20),
-    points_value: Number(formData.get("points_value") ?? 10),
-    attribute_bonus: (formData.get("attribute_bonus") || null) as string | null,
-    due_date: !isHabit && formData.get("due_date") ? String(formData.get("due_date")) : null,
+    title,
+    category,
+    xp_value: xpValue,
+    points_value: pointsValue,
+    attribute_bonus: attributeBonus,
+    due_date: dueDate,
     is_habit: isHabit,
     habit_days: isHabit ? habitDays : null,
     habit_frequency_per_week: isHabit ? Number(formData.get("habit_frequency_per_week") ?? 1) : null,
@@ -33,10 +44,44 @@ export async function POST(request: Request) {
     habit_week_start: null
   };
 
-  const { data, error } = await supabase.from("tasks").insert(payload).select("id").single();
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  const { data, error } = await supabase.from("tasks").insert(fullPayload).select("id").single();
+  if (!error) {
+    return NextResponse.json({ ok: true, id: data.id });
   }
 
-  return NextResponse.json({ ok: true, id: data.id });
+  const missingHabitColumns =
+    isMissingColumnError(error.message, "habit_days") ||
+    isMissingColumnError(error.message, "is_habit") ||
+    isMissingColumnError(error.message, "habit_frequency_per_week");
+
+  if (isHabit && missingHabitColumns) {
+    return NextResponse.json(
+      {
+        error:
+          "Deine Datenbank hat noch keine Gewohnheits-Spalten (z. B. habit_days). Bitte führe supabase/schema.sql erneut aus und lade danach die Seite neu."
+      },
+      { status: 400 }
+    );
+  }
+
+  const missingPointsColumn = isMissingColumnError(error.message, "points_value");
+  if (missingHabitColumns || missingPointsColumn) {
+    const legacyPayload = {
+      user_id: user.id,
+      title,
+      category,
+      xp_value: xpValue,
+      attribute_bonus: attributeBonus,
+      due_date: dueDate
+    };
+
+    const { data: legacyData, error: legacyError } = await supabase.from("tasks").insert(legacyPayload).select("id").single();
+    if (!legacyError) {
+      return NextResponse.json({ ok: true, id: legacyData.id, warning: "legacy_schema" });
+    }
+
+    return NextResponse.json({ error: legacyError.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ error: error.message }, { status: 400 });
 }
