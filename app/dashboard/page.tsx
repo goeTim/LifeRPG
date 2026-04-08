@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AchievementList } from "@/components/achievement-list";
 import { ProgressBar } from "@/components/progress-bar";
 import { TaskList } from "@/components/task-list";
-import { todayTasks } from "@/lib/achievements";
 import { calculateLevelProgress } from "@/lib/leveling";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { Profile, Task, UserAchievement } from "@/types/domain";
@@ -41,7 +40,8 @@ export default async function DashboardPage() {
   }
 
   const progress = calculateLevelProgress(profile.level, profile.xp);
-  const todaysTasks = todayTasks(tasks ?? []);
+  const allTasks = (tasks ?? []).filter((task) => !task.is_habit);
+  const allHabits = (tasks ?? []).filter((task) => task.is_habit);
 
   return (
     <main className="mx-auto grid min-h-screen w-full max-w-6xl gap-6 px-6 py-8 md:grid-cols-3">
@@ -59,11 +59,12 @@ export default async function DashboardPage() {
             {profile.xp} / {progress.xpNeeded} XP bis zum nächsten Level · {profile.points ?? 0} Punkte
           </p>
           <Link className="btn-primary inline-flex" href="/tasks">
-            Tasks & Gewohnheiten verwalten
+            Neues Task / Gewohnheit erstellen
           </Link>
         </div>
 
-        <TaskList tasks={todaysTasks} />
+        <TaskList tasks={allTasks} title="Alle Tasks" emptyLabel="Du hast noch keine Tasks erstellt." />
+        <TaskList tasks={allHabits} title="Alle Gewohnheiten" emptyLabel="Du hast noch keine Gewohnheiten erstellt." />
       </section>
 
       <aside className="space-y-6">
