@@ -44,7 +44,7 @@ create table if not exists public.skills (
   level int not null default 1 check (level > 0),
   xp int not null default 0 check (xp >= 0),
   created_at timestamptz not null default now(),
-  unique (user_id, lower(name))
+  unique (user_id, name)
 );
 
 create table if not exists public.tasks (
@@ -121,7 +121,7 @@ select distinct
   'discipline'
 from public.tasks t
 where coalesce(t.category, '') <> ''
-on conflict (user_id, lower(name)) do nothing;
+on conflict (user_id, name) do nothing;
 
 update public.tasks t
 set skill_id = s.id
