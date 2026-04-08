@@ -64,7 +64,13 @@ export default async function DashboardPage() {
               Zur Profilseite
             </Link>
             <Link className="rounded-xl border border-cyan-700 px-4 py-2 font-semibold text-cyan-300" href="/settings">
-              Skills verwalten
+              Verwaltung
+            </Link>
+            <Link className="rounded-xl border border-violet-700 px-4 py-2 font-semibold text-violet-300" href="/shop">
+              Shop
+            </Link>
+            <Link className="rounded-xl border border-emerald-700 px-4 py-2 font-semibold text-emerald-300" href="/inventory">
+              Inventar
             </Link>
           </div>
         </div>

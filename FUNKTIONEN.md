@@ -1,159 +1,172 @@
 # LifeRPG – Funktionsübersicht (Stand: April 2026)
 
-Diese Datei beschreibt die aktuell vorhandenen Funktionen der App **LifeRPG** in übersichtlicher Form.
+## 1) Core-System (bestehend)
 
-## 1) Einstieg & Konto
+- Auth (Register/Login/Logout) mit geschützten Seiten.
+- Dashboard mit Level, XP, Gold, Punkten, Tasks/Gewohnheiten, Attributen und Achievements.
+- Skill-System inkl. Skills erstellen/bearbeiten/löschen.
+- Task- und Gewohnheitssystem inkl. Rewards, Streak- und Achievement-Logik.
 
-- **Startseite** mit kurzer Produktbeschreibung und CTA-Buttons für Registrierung/Login.
-- **Registrierung** neuer Nutzer.
-- **Login** bestehender Nutzer.
-- **Logout** direkt aus dem Dashboard.
-- Geschützte Seiten leiten ohne Login automatisch auf `/login` weiter.
+## 2) Neue Verwaltungszentrale: `/settings`
 
-## 2) Dashboard
+Die Settings-Seite ist jetzt der zentrale Admin-Bereich der App:
 
-Das Dashboard ist die zentrale Übersicht und zeigt:
+- **Skills verwalten** (bestehend, unverändert integriert)
+- **Rewards verwalten**
+  - Anzeigen
+  - Erstellen
+  - Bearbeiten
+  - Löschen
+- **Items verwalten**
+  - Anzeigen
+  - Erstellen
+  - Bearbeiten
+  - Löschen
 
-- Begrüßung mit Nutzername
-- **Globales Level** und aktueller **XP-Fortschritt**
-- **Gold** (Ingame-Währung)
-- **Punkte**
-- Aufteilung in:
-  - **Alle Tasks**
-  - **Alle Gewohnheiten**
-- Übersicht der **Attribut-Level**
-- Anzahl der aktuell angelegten **Skills**
-- Liste freigeschalteter **Achievements**
-- Schnellnavigation zu:
-  - Task-/Gewohnheit erstellen
-  - Profilseite
-  - Skill-Verwaltung (Settings)
+Neu eingeführte UI-Bausteine:
 
-## 3) Task- und Gewohnheitssystem
+- `SettingsSection`
+- `RewardsSettingsList` + `RewardForm`
+- `ItemsSettingsList` + `ItemForm`
 
-### 3.1 Erstellen
+## 3) Rewards-System
 
-Nutzer können Einträge erstellen als:
+Rewards sind user-spezifische reale Belohnungen (z. B. „1 Stunde Gaming“):
 
-- **Task** (klassische Aufgabe)
-- **Gewohnheit** (wiederkehrend)
+- Werden in `/settings` gepflegt (`custom_rewards`).
+- Sind in `/shop` kaufbar.
+- Landen im Inventar (`inventory_items` mit `reward_id`).
+- Sind **stackbar** (Mehrfachkauf erhöht `quantity`).
+- Beim Einlösen in `/inventory` wird `quantity` um 1 reduziert.
+- Bei `quantity <= 0` wird der Inventar-Eintrag entfernt.
 
-Beim Erstellen sind u. a. folgende Werte möglich:
+## 4) Ingame-Items-System
 
-- Titel
-- XP-Wert
-- Punkte-Wert
-- Optionaler Skill-Bezug
-- Skill-XP-Belohnung
-- Attribut-XP-Belohnungen (pro Attribut)
-- Bei Tasks optionales Fälligkeitsdatum
-- Bei Gewohnheiten Wochentage + Zielhäufigkeit pro Woche
+Items werden in `shop_items` gespeichert und unterstützen folgende Typen:
 
-### 3.2 Abschließen
+- `consumable` (stackbar + verbrauchbar)
+- `cosmetic` (dauerhaft + aktivierbar)
+- `title` (dauerhaft + aktivierbar + Haupttitel möglich)
+- `unlockable` (dauerhaft freigeschaltet)
 
-Beim Abschließen wird je nach Typ geprüft:
+Konfigurierbare Felder:
 
-- **Task**: nur einmal abschließbar
-- **Gewohnheit**:
-  - nur an fälligen Tagen abschließbar
-  - nur einmal pro Tag
-  - respektiert Wochenziel (z. B. 3x pro Woche)
+- `name`, `description`, `icon`
+- `cost_gold`, `cost_points`
+- `item_type`, `rarity`, `color`
+- `is_stackable`, `is_consumable` (automatisch aus `item_type` gesetzt)
 
-Nach erfolgreichem Abschluss:
+## 5) Shop: `/shop`
 
-- Task/Gewohnheit wird als erledigt markiert
-- Profil erhält XP/Punkte/Gold
-- Attribute erhalten XP
-- Zugeordneter Skill erhält XP (falls gesetzt)
-- Streak wird aktualisiert
-- Neue Achievements werden automatisch geprüft und ggf. freigeschaltet
+Der Shop zeigt:
 
-## 4) RPG-Progression
+- aktuelles Gold
+- aktuelle Punkte
+- kaufbare Bereiche:
+  - Rewards
+  - Consumables
+  - Cosmetics
+  - Titles
+  - Unlockables
 
-### 4.1 Globales Levelsystem
+Kauf-Logik:
 
-- XP-Schwelle pro Level skaliert mit Level (`GLOBAL_XP_BASE * aktuelles Level`).
-- Mehrere Level-Ups in einem Schritt sind möglich.
-- Level-Up belohnt zusätzlich mit Gold.
+- Kaufprüfung auf Gold/Punkte (`canAfford`)
+- Wallet-Abzug (`deductWallet`)
+- Inventar-Update je nach Typ (stacken oder dauerhaft einmalig)
 
-### 4.2 Attribute
+Neue Shop-Komponenten:
 
-Aktuelle Attribute:
+- `ShopHeader`
+- `ShopGrid`
+- `ShopItemCard`
+- `PurchaseButton`
 
-- Stärke
-- Fokus
-- Wissen
-- Ausdauer
-- Disziplin
-- Charisma
+## 6) Inventory: `/inventory`
 
-Für jedes Attribut gibt es:
+Inventar zeigt alle gekauften Dinge mit:
 
-- eigenes Level
-- eigene XP
-- eigenen Fortschrittsbalken
-- Gold-Belohnung bei Attribut-Level-Up
+- Name, Typ, Icon, Beschreibung
+- `quantity`
+- aktiv/inaktiv Status (wo relevant)
 
-### 4.3 Skills
+Verhalten:
 
-- Nutzer können eigene **Skills** (trainierbare Lebensbereiche) anlegen.
-- Skill enthält u. a. Name, Beschreibung, Icon/Farbe, primäres und optional sekundäres Attribut.
-- Skills können erstellt, bearbeitet und gelöscht werden.
-- Beim Löschen werden Referenzen in Tasks/Gewohnheiten bereinigt (Skill-Verknüpfung entfernt).
-- Skill-XP aus Tasks/Gewohnheiten kann Skill-Level erhöhen.
+- Rewards: einlösbar (verbrauchen)
+- Consumables: benutzbar (verbrauchen)
+- Cosmetics: aktivierbar/deaktivierbar
+- Titles: aktivierbar/deaktivierbar + Haupttitel setzen
+- Unlockables: dauerhaft vorhanden
 
-## 5) Achievements & Streaks
+Neue Inventory-Komponenten:
 
-Aktuell implementierte Achievement-Regeln:
+- `InventoryGrid`
+- `InventoryItemCard`
+- `TitleManager`
 
-- **First Blood**: erstes Task abgeschlossen
-- **Momentum**: 5 Tasks abgeschlossen
-- **Hero Rank**: Level 5 erreicht
-- **On Fire**: 3-Tage-Streak erreicht
+## 7) Titel-System & Profil
 
-Streak-Logik:
+Titel-Logik:
 
-- gleiche Tagesabschlüsse erhöhen die Streak nicht doppelt
-- Abschluss am Folgetag erhöht die Streak
-- längere Lücke setzt die Streak zurück
+- Mehrere Titel können besessen werden.
+- Mehrere Titel können gleichzeitig aktiv sein.
+- Es gibt genau **einen Haupttitel** (`is_main_title`).
+- Setzen eines neuen Haupttitels ersetzt den alten.
 
-## 6) Profilseite
+Profil-Erweiterung (`/profile`):
 
-Die Profilseite enthält:
+- Haupttitel wird direkt neben dem Nutzernamen angezeigt.
+- Abschnitt **„Titel“** zeigt alle aktiven Titel außer Haupttitel.
+- Bestehende Profilinhalte bleiben erhalten (Radar, Attribute, Avatar, Achievements).
 
-- Profilkopf mit Avatar, Name, Rangtitel, Level, XP und Gold
-- Visualisierung der Attribute als Radar-Chart
-- Detailkarten pro Attribut (Level, XP, Rest-XP)
-- Avatar-Auswahl
-- Achievement-Grid
+## 8) Datenmodell (neu)
 
-Rangtitel (aktuell):
+Neue Tabellen:
 
-- ab Level 1: **Novize**
-- ab Level 10: **Abenteurer**
-- ab Level 20: **Champion**
+- `shop_items`
+- `custom_rewards`
+- `inventory_items`
+- `inventory_history` (optional, hier integriert)
 
-## 7) Settings / Skill-Verwaltung
+Wichtige Modellregeln:
 
-In den Settings können Nutzer:
+- `inventory_items` referenziert **entweder** `shop_item_id` **oder** `reward_id` (Check-Constraint).
+- Unique-Indices für `(user_id, shop_item_id)` und `(user_id, reward_id)` verhindern unnötige Duplikate.
+- RLS-Policies sichern alle neuen Tabellen auf den Owner ein (mit global lesbaren Seed-Shop-Items via `user_id is null`).
 
-- Skills anlegen
-- Skills bearbeiten
-- Skills löschen
-- Primäre/sekundäre Attributzuordnung der Skills festlegen
+## 9) Seed-Daten
 
-Damit wird gesteuert, welche Lebensbereiche gezielt trainiert werden und wie Aufgaben auf die Progression einzahlen.
+Seed ergänzt um globale Shop-Items:
 
-## 8) API-Endpunkte (intern genutzt)
+- Consumables: z. B. `Energy Drink`, `Focus Potion`
+- Cosmetic: `Neon Aura`
+- Titles: `Novize`, `Scholar`, `Champion`, `Disziplinierter`
+- Unlockable: `Golden Theme`
 
-- `POST /api/tasks` – erstellt Task/Gewohnheit
-- `POST /api/tasks/[id]/complete` – schließt Task/Gewohnheit ab und triggert Rewards/Streak/Achievements
-- `GET /api/skills` – lädt Skills des Nutzers
-- `POST /api/skills` – erstellt Skill
-- `PATCH /api/skills/[id]` – aktualisiert Skill
-- `DELETE /api/skills/[id]` – löscht Skill
-- `POST /api/auth/logout` – Logout
+User-spezifische Rewards sind absichtlich im Seed als Beispiel-Kommentar enthalten und werden i. d. R. pro User in Settings angelegt.
 
-## 9) Technischer Hinweis
+## 10) Business-Logik / Helper
 
-Die App nutzt **Next.js (App Router)** + **Supabase** (Auth + Datenbank). Ein Teil der Logik ist serverseitig umgesetzt, insbesondere Auth-Prüfung sowie Abschluss- und Reward-Berechnung.
+Zentrale neue Helper:
+
+- `lib/inventory.ts`
+  - Kaufprüfung
+  - Wallet-Abzug
+  - Item-Verhalten (stackbar/consumable)
+  - Inventory-Metadaten
+- `lib/inventory-service.ts`
+  - Kauf von Rewards/Items
+  - Inventar-Update
+  - Verbrauchslogik
+  - Inventar-Laden
+
+## 11) API-Endpunkte (neu)
+
+- `GET/POST /api/rewards`
+- `PATCH/DELETE /api/rewards/[id]`
+- `GET/POST /api/items`
+- `PATCH/DELETE /api/items/[id]`
+- `POST /api/shop/purchase`
+- `POST /api/inventory/[id]/use`
+- `POST /api/inventory/[id]/toggle-active`
+- `POST /api/inventory/[id]/set-main-title`
