@@ -46,36 +46,51 @@ export function TasksManagementPanel({ initialTasks, skills }: { initialTasks: T
         <div className="space-y-3 rounded-xl border border-cyan-700/40 bg-cyan-900/10 p-4">
           <h3 className="font-semibold">Task bearbeiten</h3>
           <div className="grid gap-2 md:grid-cols-2">
-            <input className="input" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
-            <input
-              className="input"
-              type="number"
-              min={0}
-              value={editing.xp_value}
-              onChange={(e) => setEditing({ ...editing, xp_value: Number(e.target.value) })}
-            />
-            <input
-              className="input"
-              type="number"
-              min={0}
-              value={editing.skill_xp_reward}
-              onChange={(e) => setEditing({ ...editing, skill_xp_reward: Number(e.target.value) })}
-              placeholder="Skill-XP"
-            />
-            <input
-              className="input"
-              type="date"
-              value={editing.due_date ?? ""}
-              onChange={(e) => setEditing({ ...editing, due_date: e.target.value || null })}
-            />
-            <select className="input" value={editing.skill_id ?? ""} onChange={(e) => setEditing({ ...editing, skill_id: e.target.value || null })}>
-              <option value="">Kein Skill</option>
-              {skills.map((skill) => (
-                <option key={skill.id} value={skill.id}>
-                  {skill.icon ?? "🎯"} {skill.name}
-                </option>
-              ))}
-            </select>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Titel (Name der Aufgabe)</span>
+              <input className="input" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Globale XP (allgemeine Account-XP bei Abschluss)</span>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={editing.xp_value}
+                onChange={(e) => setEditing({ ...editing, xp_value: Number(e.target.value) })}
+              />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Skill-XP (zusätzliche XP für den gewählten Skill)</span>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={editing.skill_xp_reward}
+                onChange={(e) => setEditing({ ...editing, skill_xp_reward: Number(e.target.value) })}
+                placeholder="Skill-XP"
+              />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Fälligkeitsdatum (optional)</span>
+              <input
+                className="input"
+                type="date"
+                value={editing.due_date ?? ""}
+                onChange={(e) => setEditing({ ...editing, due_date: e.target.value || null })}
+              />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Zugeordneter Skill (optional)</span>
+              <select className="input" value={editing.skill_id ?? ""} onChange={(e) => setEditing({ ...editing, skill_id: e.target.value || null })}>
+                <option value="">Kein Skill</option>
+                {skills.map((skill) => (
+                  <option key={skill.id} value={skill.id}>
+                    {skill.icon ?? "🎯"} {skill.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="flex items-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm text-slate-300">
               <input
                 type="checkbox"

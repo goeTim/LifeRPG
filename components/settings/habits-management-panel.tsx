@@ -47,49 +47,67 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
         <div className="space-y-3 rounded-xl border border-cyan-700/40 bg-cyan-900/10 p-4">
           <h3 className="font-semibold">Gewohnheit bearbeiten</h3>
           <div className="grid gap-2 md:grid-cols-2">
-            <input className="input" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
-            <input
-              className="input"
-              type="number"
-              min={0}
-              value={editing.xp_value}
-              onChange={(e) => setEditing({ ...editing, xp_value: Number(e.target.value) })}
-            />
-            <input
-              className="input"
-              type="number"
-              min={1}
-              value={editing.habit_frequency_per_week ?? 1}
-              onChange={(e) => setEditing({ ...editing, habit_frequency_per_week: Number(e.target.value) })}
-            />
-            <input
-              className="input"
-              type="number"
-              min={0}
-              value={editing.skill_xp_reward}
-              onChange={(e) => setEditing({ ...editing, skill_xp_reward: Number(e.target.value) })}
-              placeholder="Skill-XP"
-            />
-            <select className="input" value={editing.skill_id ?? ""} onChange={(e) => setEditing({ ...editing, skill_id: e.target.value || null })}>
-              <option value="">Kein Skill</option>
-              {skills.map((skill) => (
-                <option key={skill.id} value={skill.id}>
-                  {skill.icon ?? "🎯"} {skill.name}
-                </option>
-              ))}
-            </select>
-            <input
-              className="input"
-              value={(editing.habit_days ?? []).join(",")}
-              onChange={(e) => {
-                const days = e.target.value
-                  .split(",")
-                  .map((value) => Number(value.trim()))
-                  .filter((value) => !Number.isNaN(value) && value >= 0 && value <= 6);
-                setEditing({ ...editing, habit_days: days.length ? days : null });
-              }}
-              placeholder="Tage 0-6, z.B. 1,3,5"
-            />
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Name der Gewohnheit</span>
+              <input className="input" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Globale XP (allgemeine Account-XP bei Abschluss)</span>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={editing.xp_value}
+                onChange={(e) => setEditing({ ...editing, xp_value: Number(e.target.value) })}
+              />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Frequenz pro Woche (wie oft die Gewohnheit erledigt werden soll)</span>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                value={editing.habit_frequency_per_week ?? 1}
+                onChange={(e) => setEditing({ ...editing, habit_frequency_per_week: Number(e.target.value) })}
+              />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Skill-XP (zusätzliche XP für den gewählten Skill)</span>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={editing.skill_xp_reward}
+                onChange={(e) => setEditing({ ...editing, skill_xp_reward: Number(e.target.value) })}
+                placeholder="Skill-XP"
+              />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Zugeordneter Skill (optional)</span>
+              <select className="input" value={editing.skill_id ?? ""} onChange={(e) => setEditing({ ...editing, skill_id: e.target.value || null })}>
+                <option value="">Kein Skill</option>
+                {skills.map((skill) => (
+                  <option key={skill.id} value={skill.id}>
+                    {skill.icon ?? "🎯"} {skill.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Wochentage (0=So bis 6=Sa, kommasepariert; leer = jeden Tag)</span>
+              <input
+                className="input"
+                value={(editing.habit_days ?? []).join(",")}
+                onChange={(e) => {
+                  const days = e.target.value
+                    .split(",")
+                    .map((value) => Number(value.trim()))
+                    .filter((value) => !Number.isNaN(value) && value >= 0 && value <= 6);
+                  setEditing({ ...editing, habit_days: days.length ? days : null });
+                }}
+                placeholder="Tage 0-6, z.B. 1,3,5"
+              />
+            </label>
           </div>
 
           <div className="flex gap-2">
