@@ -63,20 +63,24 @@ alter table public.tasks enable row level security;
 alter table public.achievements enable row level security;
 alter table public.user_achievements enable row level security;
 
+drop policy if exists "profiles owner" on public.profiles;
 create policy "profiles owner"
   on public.profiles for all
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
+drop policy if exists "tasks owner" on public.tasks;
 create policy "tasks owner"
   on public.tasks for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "achievements read" on public.achievements;
 create policy "achievements read"
   on public.achievements for select
   using (true);
 
+drop policy if exists "user achievements owner" on public.user_achievements;
 create policy "user achievements owner"
   on public.user_achievements for all
   using (auth.uid() = user_id)
