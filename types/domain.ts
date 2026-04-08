@@ -75,3 +75,48 @@ export type UserAchievement = {
   unlocked_at: string;
   achievement: Achievement;
 };
+
+export type ShopItemType = "consumable" | "cosmetic" | "title" | "unlockable";
+
+export type CustomReward = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  cost_gold: number;
+  cost_points: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ShopItem = {
+  id: string;
+  user_id: string | null;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  cost_gold: number;
+  cost_points: number;
+  item_type: ShopItemType;
+  rarity: string | null;
+  color: string | null;
+  is_stackable: boolean;
+  is_consumable: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InventoryItem = {
+  id: string;
+  user_id: string;
+  shop_item_id: string | null;
+  reward_id: string | null;
+  quantity: number;
+  is_active: boolean;
+  is_main_title: boolean;
+  acquired_at: string;
+  updated_at: string;
+  shop_item?: ShopItem | null;
+  reward?: CustomReward | null;
+};
