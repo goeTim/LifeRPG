@@ -2,8 +2,10 @@ import { AchievementCode, AttributeKey } from "@/types/domain";
 
 export const GLOBAL_XP_BASE = 100;
 export const ATTRIBUTE_XP_BASE = 50;
+export const SKILL_XP_BASE = 50;
 export const GLOBAL_LEVEL_UP_GOLD_REWARD = 50;
 export const ATTRIBUTE_LEVEL_UP_GOLD_REWARD = 20;
+export const SKILL_LEVEL_UP_GOLD_REWARD = 15;
 
 export const ATTRIBUTE_ORDER: AttributeKey[] = ["strength", "focus", "knowledge", "endurance", "discipline", "charisma"];
 
@@ -40,9 +42,9 @@ export const ATTRIBUTE_META: Record<AttributeKey, { label: string; description: 
   }
 };
 
-export const AVATAR_OPTIONS = [
-  { id: "adventurer", label: "Abenteurer", emoji: "🧙" }
-] as const;
+export const SKILL_COLOR_PRESETS = ["#22c55e", "#06b6d4", "#a855f7", "#f97316", "#f43f5e", "#eab308", "#14b8a6", "#6366f1"];
+
+export const AVATAR_OPTIONS = [{ id: "adventurer", label: "Abenteurer", emoji: "🧙" }] as const;
 
 export const ACHIEVEMENT_DEFINITIONS: Record<AchievementCode, { title: string; description: string; icon: string }> = {
   first_task: {

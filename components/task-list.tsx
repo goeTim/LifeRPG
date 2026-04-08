@@ -1,9 +1,9 @@
 "use client";
 
 import { ATTRIBUTE_META, ATTRIBUTE_ORDER } from "@/lib/constants";
-import { Task } from "@/types/domain";
+import { Skill, Task } from "@/types/domain";
 
-type Props = { tasks: Task[]; title?: string; emptyLabel?: string };
+type Props = { tasks: Task[]; skills: Skill[]; title?: string; emptyLabel?: string };
 
 function currentWeekStartISO(now = new Date()) {
   const day = now.getUTCDay();
@@ -13,9 +13,10 @@ function currentWeekStartISO(now = new Date()) {
   return start.toISOString().slice(0, 10);
 }
 
-export function TaskList({ tasks, title = "Heutige Tasks", emptyLabel = "Keine Tasks für heute." }: Props) {
+export function TaskList({ tasks, skills, title = "Heutige Tasks", emptyLabel = "Keine Tasks für heute." }: Props) {
   const todayISO = new Date().toISOString().slice(0, 10);
   const weekStart = currentWeekStartISO();
+  const skillMap = Object.fromEntries(skills.map((skill) => [skill.id, skill]));
 
   return (
     <div className="card space-y-3">
@@ -32,15 +33,22 @@ export function TaskList({ tasks, title = "Heutige Tasks", emptyLabel = "Keine T
           const xp = task.attribute_xp_rewards?.[key] ?? 0;
           return xp > 0 ? `+${xp} ${ATTRIBUTE_META[key].label}-XP` : null;
         }).filter(Boolean);
+        const skill = task.skill_id ? skillMap[task.skill_id] : null;
 
         return (
           <div key={task.id} className="flex items-center justify-between rounded-xl border border-slate-800 p-3">
             <div>
               <p className="font-medium">{task.title}</p>
               <p className="text-xs text-slate-400">
-                {task.category} · {task.xp_value} XP · {task.points_value} Punkte
+                {task.xp_value} globale XP · {task.points_value} Punkte
                 {task.due_date ? ` · fällig: ${task.due_date}` : ""}
               </p>
+              {(skill || task.skill_xp_reward > 0) && (
+                <p className="text-xs text-cyan-300">
+                  Skill: {skill ? `${skill.icon ?? "🎯"} ${skill.name}` : "(gelöscht)"}
+                  {task.skill_xp_reward > 0 ? ` · +${task.skill_xp_reward} Skill-XP` : ""}
+                </p>
+              )}
               {attributeRewards.length > 0 && <p className="text-xs text-violet-300">{attributeRewards.join(" · ")}</p>}
               {weeklyProgress && <p className="text-xs text-violet-300">Gewohnheit · {weeklyProgress}</p>}
             </div>

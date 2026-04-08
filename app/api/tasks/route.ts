@@ -25,11 +25,12 @@ export async function POST(request: Request) {
     .filter((day) => !Number.isNaN(day));
 
   const title = String(formData.get("title") ?? "").trim();
-  const category = String(formData.get("category") ?? "General").trim() || "General";
   const xpValue = Number(formData.get("xp_value") ?? 20);
   const pointsValue = Number(formData.get("points_value") ?? 10);
   const attributeBonus = (formData.get("attribute_bonus") || null) as string | null;
   const dueDate = !isHabit && formData.get("due_date") ? String(formData.get("due_date")) : null;
+  const skillId = String(formData.get("skill_id") ?? "").trim() || null;
+  const skillXpReward = Math.max(0, Number(formData.get("skill_xp_reward") ?? 0));
 
   const attributeXpRewards = ATTRIBUTE_ORDER.reduce<Partial<Record<AttributeKey, number>>>((acc, key) => {
     const raw = Number(formData.get(`attr_xp_${key}`) ?? 0);
@@ -42,11 +43,13 @@ export async function POST(request: Request) {
   const fullPayload = {
     user_id: user.id,
     title,
-    category,
+    category: "Skill-basiert",
     xp_value: xpValue,
     points_value: pointsValue,
     attribute_bonus: attributeBonus,
     attribute_xp_rewards: attributeXpRewards,
+    skill_id: skillId,
+    skill_xp_reward: skillXpReward,
     due_date: dueDate,
     is_habit: isHabit,
     habit_days: isHabit ? habitDays : null,
@@ -60,39 +63,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: data.id });
   }
 
-  const missingHabitColumns =
+  const missingColumns =
     isMissingColumnError(error.message, "habit_days") ||
     isMissingColumnError(error.message, "is_habit") ||
     isMissingColumnError(error.message, "habit_frequency_per_week") ||
-    isMissingColumnError(error.message, "attribute_xp_rewards");
+    isMissingColumnError(error.message, "attribute_xp_rewards") ||
+    isMissingColumnError(error.message, "skill_id") ||
+    isMissingColumnError(error.message, "skill_xp_reward");
 
-  if (isHabit && missingHabitColumns) {
+  if (missingColumns) {
     return NextResponse.json(
       {
         error:
-          "Deine Datenbank hat noch keine Gewohnheits-/Attribut-Spalten (z. B. habit_days, attribute_xp_rewards). Bitte führe supabase/schema.sql erneut aus und lade danach die Seite neu."
+          "Deine Datenbank hat noch nicht alle Skill-/Gewohnheits-Spalten. Bitte führe das aktuelle supabase/schema.sql inkl. Migration aus und lade danach die Seite neu."
       },
       { status: 400 }
     );
-  }
-
-  const missingPointsColumn = isMissingColumnError(error.message, "points_value");
-  if (missingHabitColumns || missingPointsColumn) {
-    const legacyPayload = {
-      user_id: user.id,
-      title,
-      category,
-      xp_value: xpValue,
-      attribute_bonus: attributeBonus,
-      due_date: dueDate
-    };
-
-    const { data: legacyData, error: legacyError } = await supabase.from("tasks").insert(legacyPayload).select("id").single();
-    if (!legacyError) {
-      return NextResponse.json({ ok: true, id: legacyData.id, warning: "legacy_schema" });
-    }
-
-    return NextResponse.json({ error: legacyError.message }, { status: 400 });
   }
 
   return NextResponse.json({ error: error.message }, { status: 400 });

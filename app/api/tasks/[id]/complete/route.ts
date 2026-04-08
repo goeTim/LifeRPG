@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { inferNewAchievements, computeStreak, habitDueToday } from "@/lib/achievements";
-import { ATTRIBUTE_LEVEL_UP_GOLD_REWARD, ATTRIBUTE_ORDER } from "@/lib/constants";
-import { applyAttributeXpGain, applyGlobalXpGain } from "@/lib/leveling";
+import { applyTaskCompletionRewards } from "@/lib/rewards";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { AttributeKey, Profile, Task, UserAchievement } from "@/types/domain";
+import { Profile, Skill, Task, UserAchievement } from "@/types/domain";
 
 function weekStartISO(date: Date) {
   const day = date.getUTCDay();
@@ -76,44 +75,27 @@ export async function POST(request: Request, { params }: { params: { id: string 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile) return NextResponse.json({ error: "Profile missing" }, { status: 404 });
 
-  const globalLevelResult = applyGlobalXpGain(profile.level, profile.xp, task.xp_value);
   const streakStep = computeStreak(profile.last_completed_at, nowISO);
   const nextStreak = streakStep === null ? profile.streak_count : streakStep === "increment" ? profile.streak_count + 1 : 1;
 
-  const legacyAttributeBonus = task.attribute_bonus ? { [task.attribute_bonus]: (task.attribute_xp_rewards?.[task.attribute_bonus] ?? 0) + 10 } : {};
-  const attributeRewards: Partial<Record<AttributeKey, number>> = {
-    ...(task.attribute_xp_rewards ?? {}),
-    ...Object.fromEntries(
-      Object.entries(legacyAttributeBonus).filter(([, value]) => value > 0)
-    )
-  };
+  const { data: skill } = task.skill_id
+    ? await supabase.from("skills").select("*").eq("id", task.skill_id).eq("user_id", user.id).single<Skill>()
+    : { data: null as Skill | null };
 
-  const attributeUpdate: Record<string, number> = {};
-  let attributeGoldReward = 0;
-
-  for (const key of ATTRIBUTE_ORDER) {
-    const gainedXp = attributeRewards[key] ?? 0;
-    const currentLevel = profile[`${key}_level`];
-    const currentXp = profile[`${key}_xp`];
-    const result = applyAttributeXpGain(currentLevel, currentXp, gainedXp);
-
-    attributeUpdate[`${key}_level`] = result.level;
-    attributeUpdate[`${key}_xp`] = result.xp;
-    attributeGoldReward += result.levelsGained * ATTRIBUTE_LEVEL_UP_GOLD_REWARD;
-  }
+  const rewards = applyTaskCompletionRewards(profile, task, skill);
 
   await supabase
     .from("profiles")
     .update({
-      level: globalLevelResult.level,
-      xp: globalLevelResult.xp,
-      gold: (profile.gold ?? 0) + globalLevelResult.goldReward + attributeGoldReward,
-      points: (profile.points ?? 0) + (task.points_value ?? 0),
+      ...rewards.profileUpdate,
       streak_count: nextStreak,
-      last_completed_at: nowISO,
-      ...attributeUpdate
+      last_completed_at: nowISO
     })
     .eq("id", user.id);
+
+  if (skill && rewards.skillUpdate) {
+    await supabase.from("skills").update(rewards.skillUpdate).eq("id", skill.id).eq("user_id", user.id);
+  }
 
   const [{ count }, { data: unlocked }] = await Promise.all([
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).not("completed_at", "is", null),
@@ -125,7 +107,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
   ]);
 
   const codes = inferNewAchievements({
-    profile: { ...profile, level: globalLevelResult.level, xp: globalLevelResult.xp, streak_count: nextStreak },
+    profile: { ...profile, level: rewards.profileUpdate.level, xp: rewards.profileUpdate.xp, streak_count: nextStreak },
     completedTasksCount: count ?? 0,
     unlocked: unlocked ?? []
   });

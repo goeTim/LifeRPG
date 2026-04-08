@@ -26,6 +26,20 @@ export type Profile = {
   charisma_xp: number;
 };
 
+export type Skill = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  primary_attribute: AttributeKey;
+  secondary_attribute: AttributeKey | null;
+  level: number;
+  xp: number;
+  created_at: string;
+};
+
 export type Task = {
   id: string;
   user_id: string;
@@ -35,6 +49,8 @@ export type Task = {
   points_value: number;
   attribute_bonus: AttributeKey | null;
   attribute_xp_rewards: Partial<Record<AttributeKey, number>> | null;
+  skill_id: string | null;
+  skill_xp_reward: number;
   is_completed: boolean;
   due_date: string | null;
   completed_at: string | null;
