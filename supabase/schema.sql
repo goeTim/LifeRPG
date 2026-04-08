@@ -32,15 +32,32 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.skills (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  name text not null,
+  description text,
+  icon text,
+  color text,
+  primary_attribute text not null check (primary_attribute in ('strength', 'focus', 'knowledge', 'endurance', 'discipline', 'charisma')),
+  secondary_attribute text check (secondary_attribute is null or secondary_attribute in ('strength', 'focus', 'knowledge', 'endurance', 'discipline', 'charisma')),
+  level int not null default 1 check (level > 0),
+  xp int not null default 0 check (xp >= 0),
+  created_at timestamptz not null default now(),
+  unique (user_id, name)
+);
+
 create table if not exists public.tasks (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
   title text not null,
-  category text not null,
+  category text not null default 'General',
   xp_value int not null check (xp_value > 0),
   points_value int not null default 0 check (points_value >= 0),
   attribute_bonus text check (attribute_bonus in ('strength', 'focus', 'knowledge', 'endurance', 'discipline', 'charisma')),
   attribute_xp_rewards jsonb not null default '{}'::jsonb,
+  skill_id uuid references public.skills(id) on delete set null,
+  skill_xp_reward int not null default 0 check (skill_xp_reward >= 0),
   is_completed boolean not null default false,
   due_date date,
   completed_at timestamptz,
@@ -77,6 +94,7 @@ update public.profiles set
   discipline_level = greatest(discipline_level, discipline),
   charisma_level = greatest(charisma_level, charisma);
 
+alter table public.tasks alter column category set default 'General';
 alter table public.tasks add column if not exists points_value int not null default 0;
 alter table public.tasks add column if not exists is_habit boolean not null default false;
 alter table public.tasks add column if not exists habit_days int[];
@@ -84,11 +102,33 @@ alter table public.tasks add column if not exists habit_frequency_per_week int;
 alter table public.tasks add column if not exists habit_weekly_completions int not null default 0;
 alter table public.tasks add column if not exists habit_week_start date;
 alter table public.tasks add column if not exists attribute_xp_rewards jsonb not null default '{}'::jsonb;
+alter table public.tasks add column if not exists skill_id uuid references public.skills(id) on delete set null;
+alter table public.tasks add column if not exists skill_xp_reward int not null default 0;
 
 alter table public.tasks drop constraint if exists tasks_attribute_bonus_check;
 alter table public.tasks
   add constraint tasks_attribute_bonus_check
   check (attribute_bonus is null or attribute_bonus in ('strength', 'focus', 'knowledge', 'endurance', 'discipline', 'charisma'));
+
+alter table public.tasks drop constraint if exists tasks_skill_xp_reward_check;
+alter table public.tasks add constraint tasks_skill_xp_reward_check check (skill_xp_reward >= 0);
+
+insert into public.skills (user_id, name, description, primary_attribute)
+select distinct
+  t.user_id,
+  t.category,
+  'Migrated from legacy category label',
+  'discipline'
+from public.tasks t
+where coalesce(t.category, '') <> ''
+on conflict (user_id, name) do nothing;
+
+update public.tasks t
+set skill_id = s.id
+from public.skills s
+where t.user_id = s.user_id
+  and lower(t.category) = lower(s.name)
+  and t.skill_id is null;
 
 create table if not exists public.achievements (
   id uuid primary key default gen_random_uuid(),
@@ -105,6 +145,7 @@ create table if not exists public.user_achievements (
 );
 
 alter table public.profiles enable row level security;
+alter table public.skills enable row level security;
 alter table public.tasks enable row level security;
 alter table public.achievements enable row level security;
 alter table public.user_achievements enable row level security;
@@ -114,6 +155,12 @@ create policy "profiles owner"
   on public.profiles for all
   using (auth.uid() = id)
   with check (auth.uid() = id);
+
+drop policy if exists "skills owner" on public.skills;
+create policy "skills owner"
+  on public.skills for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists "tasks owner" on public.tasks;
 create policy "tasks owner"

@@ -7,7 +7,7 @@ import { TaskList } from "@/components/task-list";
 import { ATTRIBUTE_META, ATTRIBUTE_ORDER } from "@/lib/constants";
 import { calculateLevelProgress } from "@/lib/leveling";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { Profile, Task, UserAchievement } from "@/types/domain";
+import { Profile, Skill, Task, UserAchievement } from "@/types/domain";
 
 export default async function DashboardPage() {
   const supabase = createSupabaseServerClient();
@@ -19,14 +19,15 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const [{ data: profile }, { data: tasks }, { data: achievements }] = await Promise.all([
+  const [{ data: profile }, { data: tasks }, { data: achievements }, { data: skills }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single<Profile>(),
     supabase.from("tasks").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).returns<Task[]>(),
     supabase
       .from("user_achievements")
       .select("achievement_id, unlocked_at, achievement:achievements(*)")
       .eq("user_id", user.id)
-      .returns<UserAchievement[]>()
+      .returns<UserAchievement[]>(),
+    supabase.from("skills").select("*").eq("user_id", user.id).returns<Skill[]>()
   ]);
 
   if (!profile) {
@@ -62,11 +63,14 @@ export default async function DashboardPage() {
             <Link className="rounded-xl border border-slate-600 px-4 py-2 font-semibold" href="/profile">
               Zur Profilseite
             </Link>
+            <Link className="rounded-xl border border-cyan-700 px-4 py-2 font-semibold text-cyan-300" href="/settings">
+              Skills verwalten
+            </Link>
           </div>
         </div>
 
-        <TaskList tasks={allTasks} title="Alle Tasks" emptyLabel="Du hast noch keine Tasks erstellt." />
-        <TaskList tasks={allHabits} title="Alle Gewohnheiten" emptyLabel="Du hast noch keine Gewohnheiten erstellt." />
+        <TaskList tasks={allTasks} skills={skills ?? []} title="Alle Tasks" emptyLabel="Du hast noch keine Tasks erstellt." />
+        <TaskList tasks={allHabits} skills={skills ?? []} title="Alle Gewohnheiten" emptyLabel="Du hast noch keine Gewohnheiten erstellt." />
       </section>
 
       <aside className="space-y-6">
@@ -78,6 +82,11 @@ export default async function DashboardPage() {
               <span className="font-semibold">{profile[`${attr}_level`]}</span>
             </div>
           ))}
+        </div>
+
+        <div className="card">
+          <p className="text-sm text-slate-300">Trainierbare Skills</p>
+          <p className="text-3xl font-bold">{skills?.length ?? 0}</p>
         </div>
 
         <AchievementList achievements={achievements ?? []} />

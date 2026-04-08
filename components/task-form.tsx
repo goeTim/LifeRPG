@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { SkillPicker } from "@/components/skill-picker";
 import { ATTRIBUTE_META, ATTRIBUTE_ORDER } from "@/lib/constants";
-import { AttributeKey } from "@/types/domain";
+import { AttributeKey, Skill } from "@/types/domain";
 
 const ATTR_OPTIONS: { value: AttributeKey; label: string }[] = ATTRIBUTE_ORDER.map((key) => ({ value: key, label: ATTRIBUTE_META[key].label }));
 
@@ -16,7 +17,7 @@ const WEEKDAY_OPTIONS = [
   { value: 0, label: "Sonntag" }
 ];
 
-export function TaskForm() {
+export function TaskForm({ skills }: { skills: Skill[] }) {
   const [loading, setLoading] = useState(false);
   const [isHabit, setIsHabit] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +42,7 @@ export function TaskForm() {
         window.location.reload();
       }}
     >
-      <h2 className="text-lg font-semibold">Neues {isHabit ? "Gewohnheit" : "Task"}</h2>
+      <h2 className="text-lg font-semibold">Neue {isHabit ? "Gewohnheit" : "Task"}</h2>
 
       {error && <p className="rounded-lg border border-rose-600/30 bg-rose-900/20 p-2 text-sm text-rose-300">{error}</p>}
 
@@ -62,19 +63,21 @@ export function TaskForm() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-sm text-slate-300">Kategorie</label>
-          <input className="input" name="category" placeholder="Fitness, Lernen, ..." required />
+          <label className="text-sm text-slate-300">Globale XP</label>
+          <input className="input" name="xp_value" placeholder="XP" type="number" min={5} defaultValue={20} required />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm text-slate-300">XP Belohnung</label>
-          <input className="input" name="xp_value" placeholder="XP" type="number" min={5} defaultValue={20} required />
+          <label className="text-sm text-slate-300">Punkte Belohnung</label>
+          <input className="input" name="points_value" placeholder="Punkte" type="number" min={0} defaultValue={10} required />
         </div>
       </div>
 
+      <SkillPicker skills={skills} label="Trainierter Skill (optional)" />
+
       <div className="space-y-1">
-        <label className="text-sm text-slate-300">Punkte Belohnung</label>
-        <input className="input" name="points_value" placeholder="Punkte" type="number" min={0} defaultValue={10} required />
+        <label className="text-sm text-slate-300">Skill-XP Belohnung</label>
+        <input className="input" name="skill_xp_reward" placeholder="0" type="number" min={0} step={5} defaultValue={0} />
       </div>
 
       {!isHabit && (
@@ -107,7 +110,7 @@ export function TaskForm() {
       )}
 
       <div className="space-y-1">
-        <label className="text-sm text-slate-300">Altes Attribut-Feld (optional)</label>
+        <label className="text-sm text-slate-300">Legacy Attribut-Feld (optional)</label>
         <select className="input" name="attribute_bonus" defaultValue="">
           <option value="">Kein Attribut-Bonus</option>
           {ATTR_OPTIONS.map((opt) => (
