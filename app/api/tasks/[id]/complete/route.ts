@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { inferNewAchievements, computeStreak } from "@/lib/achievements";
+import { inferNewAchievements, computeStreak, habitDueToday } from "@/lib/achievements";
 import { applyXpGain } from "@/lib/leveling";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { Profile, Task, UserAchievement } from "@/types/domain";
+
+function weekStartISO(date: Date) {
+  const day = date.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  start.setUTCDate(start.getUTCDate() + diff);
+  return start.toISOString().slice(0, 10);
+}
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const supabase = createSupabaseServerClient();
@@ -15,23 +23,60 @@ export async function POST(request: Request, { params }: { params: { id: string 
   }
 
   const { data: task } = await supabase.from("tasks").select("*").eq("id", params.id).eq("user_id", user.id).single<Task>();
-  if (!task || task.is_completed) {
+  if (!task) {
     return NextResponse.json({ ok: true });
   }
 
-  const now = new Date().toISOString();
-  const { error: taskError } = await supabase
-    .from("tasks")
-    .update({ is_completed: true, completed_at: now })
-    .eq("id", params.id)
-    .eq("user_id", user.id);
-  if (taskError) return NextResponse.json({ error: taskError.message }, { status: 400 });
+  const now = new Date();
+  const nowISO = now.toISOString();
+
+  if (!task.is_habit && task.is_completed) {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (task.is_habit) {
+    if (!habitDueToday(task, nowISO)) {
+      return NextResponse.json({ error: "Diese Gewohnheit ist heute nicht fällig." }, { status: 400 });
+    }
+
+    const todayISO = nowISO.slice(0, 10);
+    if (task.completed_at?.slice(0, 10) === todayISO) {
+      return NextResponse.json({ error: "Heute bereits erledigt." }, { status: 400 });
+    }
+
+    const currentWeekStart = weekStartISO(now);
+    const previousWeekCompletions = task.habit_week_start === currentWeekStart ? task.habit_weekly_completions : 0;
+    const weeklyTarget = task.habit_frequency_per_week ?? 1;
+
+    if (previousWeekCompletions >= weeklyTarget) {
+      return NextResponse.json({ error: "Wochenziel bereits erreicht." }, { status: 400 });
+    }
+
+    const { error: habitError } = await supabase
+      .from("tasks")
+      .update({
+        completed_at: nowISO,
+        habit_week_start: currentWeekStart,
+        habit_weekly_completions: previousWeekCompletions + 1
+      })
+      .eq("id", params.id)
+      .eq("user_id", user.id);
+
+    if (habitError) return NextResponse.json({ error: habitError.message }, { status: 400 });
+  } else {
+    const { error: taskError } = await supabase
+      .from("tasks")
+      .update({ is_completed: true, completed_at: nowISO })
+      .eq("id", params.id)
+      .eq("user_id", user.id);
+    if (taskError) return NextResponse.json({ error: taskError.message }, { status: 400 });
+  }
 
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single<Profile>();
   if (!profile) return NextResponse.json({ error: "Profile missing" }, { status: 404 });
 
   const leveled = applyXpGain(profile.level, profile.xp, task.xp_value);
-  const streakStep = computeStreak(profile.last_completed_at, now);
+  const streakStep = computeStreak(profile.last_completed_at, nowISO);
 
   const attrUpdate = task.attribute_bonus ? { [task.attribute_bonus]: profile[task.attribute_bonus] + 1 } : {};
   const nextStreak = streakStep === null ? profile.streak_count : streakStep === "increment" ? profile.streak_count + 1 : 1;
@@ -41,14 +86,15 @@ export async function POST(request: Request, { params }: { params: { id: string 
     .update({
       level: leveled.level,
       xp: leveled.xp,
+      points: (profile.points ?? 0) + (task.points_value ?? 0),
       streak_count: nextStreak,
-      last_completed_at: now,
+      last_completed_at: nowISO,
       ...attrUpdate
     })
     .eq("id", user.id);
 
   const [{ count }, { data: unlocked }] = await Promise.all([
-    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("is_completed", true),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).not("completed_at", "is", null),
     supabase
       .from("user_achievements")
       .select("achievement_id, unlocked_at, achievement:achievements(*)")

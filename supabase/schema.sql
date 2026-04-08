@@ -5,6 +5,7 @@ create table if not exists public.profiles (
   name text not null,
   level int not null default 1,
   xp int not null default 0,
+  points int not null default 0,
   streak_count int not null default 0,
   last_completed_at timestamptz,
   strength int not null default 1,
@@ -22,12 +23,26 @@ create table if not exists public.tasks (
   title text not null,
   category text not null,
   xp_value int not null check (xp_value > 0),
+  points_value int not null default 0 check (points_value >= 0),
   attribute_bonus text check (attribute_bonus in ('strength', 'focus', 'knowledge', 'endurance', 'charisma')),
   is_completed boolean not null default false,
   due_date date,
   completed_at timestamptz,
+  is_habit boolean not null default false,
+  habit_days int[] check (habit_days is null or habit_days <@ array[0,1,2,3,4,5,6]),
+  habit_frequency_per_week int check (habit_frequency_per_week is null or habit_frequency_per_week > 0),
+  habit_weekly_completions int not null default 0,
+  habit_week_start date,
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists points int not null default 0;
+alter table public.tasks add column if not exists points_value int not null default 0;
+alter table public.tasks add column if not exists is_habit boolean not null default false;
+alter table public.tasks add column if not exists habit_days int[];
+alter table public.tasks add column if not exists habit_frequency_per_week int;
+alter table public.tasks add column if not exists habit_weekly_completions int not null default 0;
+alter table public.tasks add column if not exists habit_week_start date;
 
 create table if not exists public.achievements (
   id uuid primary key default gen_random_uuid(),
@@ -48,20 +63,24 @@ alter table public.tasks enable row level security;
 alter table public.achievements enable row level security;
 alter table public.user_achievements enable row level security;
 
+drop policy if exists "profiles owner" on public.profiles;
 create policy "profiles owner"
   on public.profiles for all
   using (auth.uid() = id)
   with check (auth.uid() = id);
 
+drop policy if exists "tasks owner" on public.tasks;
 create policy "tasks owner"
   on public.tasks for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "achievements read" on public.achievements;
 create policy "achievements read"
   on public.achievements for select
   using (true);
 
+drop policy if exists "user achievements owner" on public.user_achievements;
 create policy "user achievements owner"
   on public.user_achievements for all
   using (auth.uid() = user_id)
