@@ -56,6 +56,16 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { error: detachError } = await supabase
+    .from("tasks")
+    .update({ skill_id: null })
+    .eq("user_id", user.id)
+    .eq("skill_id", params.id);
+
+  if (detachError) {
+    return NextResponse.json({ error: `Skill konnte nicht von Tasks/Gewohnheiten gelöst werden: ${detachError.message}` }, { status: 400 });
+  }
+
   const { error } = await supabase.from("skills").delete().eq("id", params.id).eq("user_id", user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
