@@ -1,19 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AchievementList } from "@/components/achievement-list";
+import { GoldDisplay } from "@/components/gold-display";
 import { ProgressBar } from "@/components/progress-bar";
 import { TaskList } from "@/components/task-list";
+import { ATTRIBUTE_META, ATTRIBUTE_ORDER } from "@/lib/constants";
 import { calculateLevelProgress } from "@/lib/leveling";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { Profile, Task, UserAchievement } from "@/types/domain";
-
-const ATTR_LABELS = {
-  strength: "Stärke",
-  focus: "Fokus",
-  knowledge: "Wissen",
-  endurance: "Ausdauer",
-  charisma: "Charisma"
-} as const;
 
 export default async function DashboardPage() {
   const supabase = createSupabaseServerClient();
@@ -48,19 +42,27 @@ export default async function DashboardPage() {
       <section className="space-y-6 md:col-span-2">
         <div className="card space-y-3">
           <p className="text-sm text-slate-300">Hallo, {profile.name}</p>
-          <div className="flex items-end justify-between">
+          <div className="flex items-end justify-between gap-2">
             <h1 className="text-3xl font-bold">Level {profile.level}</h1>
-            <form action="/api/auth/logout" method="post">
-              <button className="text-sm text-slate-400 underline">Logout</button>
-            </form>
+            <div className="flex items-center gap-3">
+              <GoldDisplay amount={profile.gold ?? 0} />
+              <form action="/api/auth/logout" method="post">
+                <button className="text-sm text-slate-400 underline">Logout</button>
+              </form>
+            </div>
           </div>
           <ProgressBar value={progress.pct} />
           <p className="text-sm text-slate-300">
             {profile.xp} / {progress.xpNeeded} XP bis zum nächsten Level · {profile.points ?? 0} Punkte
           </p>
-          <Link className="btn-primary inline-flex" href="/tasks">
-            Neues Task / Gewohnheit erstellen
-          </Link>
+          <div className="flex gap-3">
+            <Link className="btn-primary inline-flex" href="/tasks">
+              Neues Task / Gewohnheit erstellen
+            </Link>
+            <Link className="rounded-xl border border-slate-600 px-4 py-2 font-semibold" href="/profile">
+              Zur Profilseite
+            </Link>
+          </div>
         </div>
 
         <TaskList tasks={allTasks} title="Alle Tasks" emptyLabel="Du hast noch keine Tasks erstellt." />
@@ -69,11 +71,11 @@ export default async function DashboardPage() {
 
       <aside className="space-y-6">
         <div className="card space-y-3">
-          <h2 className="text-lg font-semibold">Attribute</h2>
-          {(Object.keys(ATTR_LABELS) as (keyof typeof ATTR_LABELS)[]).map((attr) => (
+          <h2 className="text-lg font-semibold">Attribut-Level</h2>
+          {ATTRIBUTE_ORDER.map((attr) => (
             <div key={attr} className="flex items-center justify-between rounded-xl bg-slate-900/50 px-3 py-2">
-              <span>{ATTR_LABELS[attr]}</span>
-              <span className="font-semibold">{profile[attr]}</span>
+              <span>{ATTRIBUTE_META[attr].label}</span>
+              <span className="font-semibold">{profile[`${attr}_level`]}</span>
             </div>
           ))}
         </div>
