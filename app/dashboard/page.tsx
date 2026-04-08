@@ -7,13 +7,13 @@ import { calculateLevelProgress } from "@/lib/leveling";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { Profile, Task, UserAchievement } from "@/types/domain";
 
-const ATTR_LABELS: Record<string, string> = {
+const ATTR_LABELS = {
   strength: "Stärke",
   focus: "Fokus",
   knowledge: "Wissen",
   endurance: "Ausdauer",
   charisma: "Charisma"
-};
+} as const;
 
 export default async function DashboardPage() {
   const supabase = createSupabaseServerClient();

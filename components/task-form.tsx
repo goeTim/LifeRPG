@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { AttributeKey } from "@/types/domain";
 
 const ATTR_OPTIONS: { value: AttributeKey; label: string }[] = [
@@ -24,17 +24,31 @@ const WEEKDAY_OPTIONS = [
 export function TaskForm() {
   const [loading, setLoading] = useState(false);
   const [isHabit, setIsHabit] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   return (
     <form
       className="card space-y-4"
-      action={async (formData) => {
+      onSubmit={async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
         setLoading(true);
-        await fetch("/api/tasks", { method: "POST", body: formData });
+        setError(null);
+
+        const formData = new FormData(event.currentTarget);
+        const response = await fetch("/api/tasks", { method: "POST", body: formData });
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({ error: "Task konnte nicht erstellt werden." }))) as { error?: string };
+          setError(payload.error ?? "Task konnte nicht erstellt werden.");
+          setLoading(false);
+          return;
+        }
+
         window.location.reload();
       }}
     >
       <h2 className="text-lg font-semibold">Neues {isHabit ? "Gewohnheit" : "Task"}</h2>
+
+      {error && <p className="rounded-lg border border-rose-600/30 bg-rose-900/20 p-2 text-sm text-rose-300">{error}</p>}
 
       <label className="flex items-center gap-2 text-sm text-slate-300">
         <input
