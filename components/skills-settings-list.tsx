@@ -86,9 +86,6 @@ export function SkillsSettingsList({ initialSkills }: { initialSkills: Skill[] }
               setValues(skillToFormValues(target));
             }}
             onDelete={async (target) => {
-              const confirmed = window.confirm(`Skill "${target.name}" wirklich löschen?`);
-              if (!confirmed) return;
-
               setError(null);
               try {
                 await request(`/api/skills/${target.id}`, { method: "DELETE" });
