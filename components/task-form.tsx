@@ -1,15 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { ATTRIBUTE_META, ATTRIBUTE_ORDER } from "@/lib/constants";
 import { AttributeKey } from "@/types/domain";
 
-const ATTR_OPTIONS: { value: AttributeKey; label: string }[] = [
-  { value: "strength", label: "Stärke" },
-  { value: "focus", label: "Fokus" },
-  { value: "knowledge", label: "Wissen" },
-  { value: "endurance", label: "Ausdauer" },
-  { value: "charisma", label: "Charisma" }
-];
+const ATTR_OPTIONS: { value: AttributeKey; label: string }[] = ATTRIBUTE_ORDER.map((key) => ({ value: key, label: ATTRIBUTE_META[key].label }));
 
 const WEEKDAY_OPTIONS = [
   { value: 1, label: "Montag" },
@@ -93,16 +88,7 @@ export function TaskForm() {
         <>
           <div className="space-y-1">
             <label className="text-sm text-slate-300">Wie oft pro Woche?</label>
-            <input
-              className="input"
-              name="habit_frequency_per_week"
-              type="number"
-              min={1}
-              max={14}
-              defaultValue={3}
-              required
-              placeholder="z. B. 3"
-            />
+            <input className="input" name="habit_frequency_per_week" type="number" min={1} max={14} defaultValue={3} required />
           </div>
 
           <div className="rounded-xl border border-slate-700 p-3">
@@ -121,7 +107,7 @@ export function TaskForm() {
       )}
 
       <div className="space-y-1">
-        <label className="text-sm text-slate-300">Attribut-Bonus (optional)</label>
+        <label className="text-sm text-slate-300">Altes Attribut-Feld (optional)</label>
         <select className="input" name="attribute_bonus" defaultValue="">
           <option value="">Kein Attribut-Bonus</option>
           {ATTR_OPTIONS.map((opt) => (
@@ -130,6 +116,18 @@ export function TaskForm() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="space-y-2 rounded-xl border border-slate-700 p-3">
+        <p className="text-sm text-slate-300">Attribut-XP Belohnungen (optional, mehrere möglich)</p>
+        <div className="grid grid-cols-2 gap-2">
+          {ATTR_OPTIONS.map((opt) => (
+            <label key={opt.value} className="text-xs text-slate-300">
+              {opt.label}
+              <input className="input mt-1" type="number" min={0} step={5} name={`attr_xp_${opt.value}`} defaultValue={0} />
+            </label>
+          ))}
+        </div>
       </div>
 
       <button className="btn-primary w-full" type="submit" disabled={loading}>

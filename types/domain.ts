@@ -1,18 +1,29 @@
-export type AttributeKey = "strength" | "focus" | "knowledge" | "endurance" | "charisma";
+export type AttributeKey = "strength" | "focus" | "knowledge" | "endurance" | "discipline" | "charisma";
+
+export type AttributeStats = Record<AttributeKey, { level: number; xp: number }>;
 
 export type Profile = {
   id: string;
   name: string;
+  avatar: string;
   level: number;
   xp: number;
+  gold: number;
   points: number;
   streak_count: number;
   last_completed_at: string | null;
-  strength: number;
-  focus: number;
-  knowledge: number;
-  endurance: number;
-  charisma: number;
+  strength_level: number;
+  strength_xp: number;
+  focus_level: number;
+  focus_xp: number;
+  knowledge_level: number;
+  knowledge_xp: number;
+  endurance_level: number;
+  endurance_xp: number;
+  discipline_level: number;
+  discipline_xp: number;
+  charisma_level: number;
+  charisma_xp: number;
 };
 
 export type Task = {
@@ -23,6 +34,7 @@ export type Task = {
   xp_value: number;
   points_value: number;
   attribute_bonus: AttributeKey | null;
+  attribute_xp_rewards: Partial<Record<AttributeKey, number>> | null;
   is_completed: boolean;
   due_date: string | null;
   completed_at: string | null;

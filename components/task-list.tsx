@@ -1,5 +1,6 @@
 "use client";
 
+import { ATTRIBUTE_META, ATTRIBUTE_ORDER } from "@/lib/constants";
 import { Task } from "@/types/domain";
 
 type Props = { tasks: Task[]; title?: string; emptyLabel?: string };
@@ -27,6 +28,10 @@ export function TaskList({ tasks, title = "Heutige Tasks", emptyLabel = "Keine T
         const completedToday = task.completed_at?.slice(0, 10) === todayISO;
         const isDone = task.is_habit ? weeklyDone || completedToday : task.is_completed;
         const weeklyProgress = task.is_habit ? `${weeklyCount}/${weeklyTarget} diese Woche` : null;
+        const attributeRewards = ATTRIBUTE_ORDER.map((key) => {
+          const xp = task.attribute_xp_rewards?.[key] ?? 0;
+          return xp > 0 ? `+${xp} ${ATTRIBUTE_META[key].label}-XP` : null;
+        }).filter(Boolean);
 
         return (
           <div key={task.id} className="flex items-center justify-between rounded-xl border border-slate-800 p-3">
@@ -34,9 +39,9 @@ export function TaskList({ tasks, title = "Heutige Tasks", emptyLabel = "Keine T
               <p className="font-medium">{task.title}</p>
               <p className="text-xs text-slate-400">
                 {task.category} · {task.xp_value} XP · {task.points_value} Punkte
-                {task.attribute_bonus ? ` · +${task.attribute_bonus}` : ""}
                 {task.due_date ? ` · fällig: ${task.due_date}` : ""}
               </p>
+              {attributeRewards.length > 0 && <p className="text-xs text-violet-300">{attributeRewards.join(" · ")}</p>}
               {weeklyProgress && <p className="text-xs text-violet-300">Gewohnheit · {weeklyProgress}</p>}
             </div>
             <button

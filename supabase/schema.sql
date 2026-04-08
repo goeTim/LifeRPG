@@ -3,8 +3,10 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text not null,
+  avatar text not null default 'adventurer',
   level int not null default 1,
   xp int not null default 0,
+  gold int not null default 0,
   points int not null default 0,
   streak_count int not null default 0,
   last_completed_at timestamptz,
@@ -12,7 +14,20 @@ create table if not exists public.profiles (
   focus int not null default 1,
   knowledge int not null default 1,
   endurance int not null default 1,
+  discipline int not null default 1,
   charisma int not null default 1,
+  strength_level int not null default 1,
+  strength_xp int not null default 0,
+  focus_level int not null default 1,
+  focus_xp int not null default 0,
+  knowledge_level int not null default 1,
+  knowledge_xp int not null default 0,
+  endurance_level int not null default 1,
+  endurance_xp int not null default 0,
+  discipline_level int not null default 1,
+  discipline_xp int not null default 0,
+  charisma_level int not null default 1,
+  charisma_xp int not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -24,7 +39,8 @@ create table if not exists public.tasks (
   category text not null,
   xp_value int not null check (xp_value > 0),
   points_value int not null default 0 check (points_value >= 0),
-  attribute_bonus text check (attribute_bonus in ('strength', 'focus', 'knowledge', 'endurance', 'charisma')),
+  attribute_bonus text check (attribute_bonus in ('strength', 'focus', 'knowledge', 'endurance', 'discipline', 'charisma')),
+  attribute_xp_rewards jsonb not null default '{}'::jsonb,
   is_completed boolean not null default false,
   due_date date,
   completed_at timestamptz,
@@ -36,13 +52,43 @@ create table if not exists public.tasks (
   created_at timestamptz not null default now()
 );
 
+alter table public.profiles add column if not exists avatar text not null default 'adventurer';
+alter table public.profiles add column if not exists gold int not null default 0;
 alter table public.profiles add column if not exists points int not null default 0;
+alter table public.profiles add column if not exists discipline int not null default 1;
+alter table public.profiles add column if not exists strength_level int not null default 1;
+alter table public.profiles add column if not exists strength_xp int not null default 0;
+alter table public.profiles add column if not exists focus_level int not null default 1;
+alter table public.profiles add column if not exists focus_xp int not null default 0;
+alter table public.profiles add column if not exists knowledge_level int not null default 1;
+alter table public.profiles add column if not exists knowledge_xp int not null default 0;
+alter table public.profiles add column if not exists endurance_level int not null default 1;
+alter table public.profiles add column if not exists endurance_xp int not null default 0;
+alter table public.profiles add column if not exists discipline_level int not null default 1;
+alter table public.profiles add column if not exists discipline_xp int not null default 0;
+alter table public.profiles add column if not exists charisma_level int not null default 1;
+alter table public.profiles add column if not exists charisma_xp int not null default 0;
+
+update public.profiles set
+  strength_level = greatest(strength_level, strength),
+  focus_level = greatest(focus_level, focus),
+  knowledge_level = greatest(knowledge_level, knowledge),
+  endurance_level = greatest(endurance_level, endurance),
+  discipline_level = greatest(discipline_level, discipline),
+  charisma_level = greatest(charisma_level, charisma);
+
 alter table public.tasks add column if not exists points_value int not null default 0;
 alter table public.tasks add column if not exists is_habit boolean not null default false;
 alter table public.tasks add column if not exists habit_days int[];
 alter table public.tasks add column if not exists habit_frequency_per_week int;
 alter table public.tasks add column if not exists habit_weekly_completions int not null default 0;
 alter table public.tasks add column if not exists habit_week_start date;
+alter table public.tasks add column if not exists attribute_xp_rewards jsonb not null default '{}'::jsonb;
+
+alter table public.tasks drop constraint if exists tasks_attribute_bonus_check;
+alter table public.tasks
+  add constraint tasks_attribute_bonus_check
+  check (attribute_bonus is null or attribute_bonus in ('strength', 'focus', 'knowledge', 'endurance', 'discipline', 'charisma'));
 
 create table if not exists public.achievements (
   id uuid primary key default gen_random_uuid(),
