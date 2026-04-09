@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/settings/empty-state";
 import { SearchBar } from "@/components/settings/search-bar";
 import { SectionHeader } from "@/components/settings/section-header";
-import { Skill, Task } from "@/types/domain";
+import { ATTRIBUTE_META, ATTRIBUTE_ORDER } from "@/lib/constants";
+import { AttributeKey, Skill, Task } from "@/types/domain";
 
 const weekdayLabel: Record<number, string> = { 0: "So", 1: "Mo", 2: "Di", 3: "Mi", 4: "Do", 5: "Fr", 6: "Sa" };
 const WEEKDAY_OPTIONS = [
@@ -19,10 +20,12 @@ const WEEKDAY_OPTIONS = [
 
 type HabitScheduleMode = "frequency" | "days";
 
-type EditableHabit = Pick<Task, "id" | "title" | "xp_value" | "skill_id" | "habit_frequency_per_week" | "habit_days" | "skill_xp_reward"> & {
+type EditableHabit = Pick<Task, "id" | "title" | "xp_value" | "points_value" | "skill_id" | "habit_frequency_per_week" | "habit_days" | "skill_xp_reward"> & {
+  attribute_xp_rewards: Partial<Record<AttributeKey, number>> | null;
   schedule_mode: HabitScheduleMode;
   skill_enabled: boolean;
   skill_xp_enabled: boolean;
+  attribute_xp_enabled: boolean;
 };
 
 async function request(url: string, options: RequestInit) {
@@ -74,6 +77,16 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                 min={0}
                 value={editing.xp_value}
                 onChange={(e) => setEditing({ ...editing, xp_value: Number(e.target.value) })}
+              />
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
+              <span>Punktebelohnung</span>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={editing.points_value}
+                onChange={(e) => setEditing({ ...editing, points_value: Number(e.target.value) })}
               />
             </label>
             <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/40 p-3 md:col-span-2">
@@ -213,6 +226,45 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                 </label>
               </div>
             </div>
+            <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/40 p-3 md:col-span-2">
+              <label className="flex items-center gap-2 text-xs text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={editing.attribute_xp_enabled}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      attribute_xp_enabled: e.target.checked,
+                      attribute_xp_rewards: e.target.checked ? editing.attribute_xp_rewards ?? {} : null
+                    })
+                  }
+                />
+                Attribut-XP aktivieren
+              </label>
+              <div className={`grid grid-cols-2 gap-2 ${editing.attribute_xp_enabled ? "" : "pointer-events-none opacity-50"}`}>
+                {ATTRIBUTE_ORDER.map((key) => (
+                  <label key={key} className="text-xs text-slate-300">
+                    {ATTRIBUTE_META[key].label}
+                    <input
+                      className="input mt-1"
+                      type="number"
+                      min={0}
+                      step={5}
+                      value={editing.attribute_xp_rewards?.[key] ?? 0}
+                      onChange={(e) =>
+                        setEditing({
+                          ...editing,
+                          attribute_xp_rewards: {
+                            ...(editing.attribute_xp_rewards ?? {}),
+                            [key]: Number(e.target.value)
+                          }
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-2">
@@ -234,6 +286,7 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                     ...editing,
                     skill_id: editing.skill_enabled ? editing.skill_id : null,
                     skill_xp_reward: editing.skill_enabled && editing.skill_xp_enabled ? editing.skill_xp_reward : 0,
+                    attribute_xp_rewards: editing.attribute_xp_enabled ? editing.attribute_xp_rewards ?? {} : null,
                     habit_frequency_per_week: editing.schedule_mode === "frequency" ? editing.habit_frequency_per_week ?? 3 : null,
                     habit_days: editing.schedule_mode === "days" ? editing.habit_days ?? [] : null
                   };
@@ -287,13 +340,16 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                         id: habit.id,
                         title: habit.title,
                         xp_value: habit.xp_value,
+                        points_value: habit.points_value,
                         skill_id: habit.skill_id,
                         habit_frequency_per_week: habit.habit_frequency_per_week,
                         habit_days: habit.habit_days,
                         skill_xp_reward: habit.skill_xp_reward,
+                        attribute_xp_rewards: habit.attribute_xp_rewards,
                         schedule_mode: habit.habit_days && habit.habit_days.length > 0 ? "days" : "frequency",
                         skill_enabled: Boolean(habit.skill_id),
-                        skill_xp_enabled: Boolean(habit.skill_id) && habit.skill_xp_reward > 0
+                        skill_xp_enabled: Boolean(habit.skill_id) && habit.skill_xp_reward > 0,
+                        attribute_xp_enabled: Boolean(habit.attribute_xp_rewards && Object.keys(habit.attribute_xp_rewards).length > 0)
                       })
                     }
                   >
