@@ -14,6 +14,8 @@ const ATTR_OPTIONS: { value: AttributeKey; label: string }[] = ATTRIBUTE_ORDER.m
 export function TaskCreateForm({ skills }: { skills: Skill[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [skillEnabled, setSkillEnabled] = useState(false);
   const [skillXpEnabled, setSkillXpEnabled] = useState(false);
@@ -26,6 +28,8 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
       onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setLoading(true);
+        setRedirecting(false);
+        setSuccess(null);
         setError(null);
 
         try {
@@ -58,7 +62,11 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
           setSkillXpEnabled(false);
           setDueDateEnabled(false);
           setAttributeXpEnabled(false);
-          router.push("/tasks/open");
+          setSuccess("Task erfolgreich erstellt. Du wirst gleich weitergeleitet …");
+          setRedirecting(true);
+          window.setTimeout(() => {
+            router.push("/tasks/open?mode=task");
+          }, 900);
         } catch {
           setError("Beim Speichern ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.");
         } finally {
@@ -66,6 +74,7 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
         }
       }}
     >
+      {success && <p className="rounded-lg border border-emerald-600/30 bg-emerald-900/20 p-2 text-sm text-emerald-300">{success}</p>}
       {error && <p className="rounded-lg border border-rose-600/30 bg-rose-900/20 p-2 text-sm text-rose-300">{error}</p>}
 
       <FormSection title="Basisdaten" description="Pflichtfelder für einen neuen Task.">
@@ -167,8 +176,8 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
         </OptionalFieldToggle>
       </FormSection>
 
-      <button className="btn-primary w-full" type="submit" disabled={loading}>
-        {loading ? "Speichern..." : "Task erstellen"}
+      <button className="btn-primary w-full" type="submit" disabled={loading || redirecting}>
+        {loading ? "Speichern..." : redirecting ? "Weiterleiten..." : "Task erstellen"}
       </button>
     </form>
   );

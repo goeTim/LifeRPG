@@ -24,6 +24,8 @@ const WEEKDAY_OPTIONS = [
 export function HabitCreateForm({ skills }: { skills: Skill[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scheduleMode, setScheduleMode] = useState<"frequency" | "days">("frequency");
   const [skillEnabled, setSkillEnabled] = useState(false);
@@ -36,6 +38,8 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
       onSubmit={async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setLoading(true);
+        setRedirecting(false);
+        setSuccess(null);
         setError(null);
 
         try {
@@ -70,7 +74,11 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
           setSkillXpEnabled(false);
           setAttributeXpEnabled(false);
           setScheduleMode("frequency");
-          router.push("/tasks/open");
+          setSuccess("Gewohnheit erfolgreich erstellt. Du wirst gleich weitergeleitet …");
+          setRedirecting(true);
+          window.setTimeout(() => {
+            router.push("/tasks/open?mode=habit");
+          }, 900);
         } catch {
           setError("Beim Speichern ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.");
         } finally {
@@ -78,6 +86,7 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
         }
       }}
     >
+      {success && <p className="rounded-lg border border-emerald-600/30 bg-emerald-900/20 p-2 text-sm text-emerald-300">{success}</p>}
       {error && <p className="rounded-lg border border-rose-600/30 bg-rose-900/20 p-2 text-sm text-rose-300">{error}</p>}
 
       <FormSection title="Basisdaten" description="Pflichtfelder für eine neue Gewohnheit.">
@@ -214,8 +223,8 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
         </OptionalFieldToggle>
       </FormSection>
 
-      <button className="btn-primary w-full" type="submit" disabled={loading}>
-        {loading ? "Speichern..." : "Gewohnheit erstellen"}
+      <button className="btn-primary w-full" type="submit" disabled={loading || redirecting}>
+        {loading ? "Speichern..." : redirecting ? "Weiterleiten..." : "Gewohnheit erstellen"}
       </button>
     </form>
   );

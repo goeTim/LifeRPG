@@ -4,7 +4,11 @@ import { OpenOverviewPanel } from "@/components/tasks/open-overview-panel";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { Skill, Task } from "@/types/domain";
 
-export default async function OpenTasksPage() {
+export default async function OpenTasksPage({
+  searchParams
+}: {
+  searchParams?: { mode?: string };
+}) {
   const supabase = createSupabaseServerClient();
   const {
     data: { user }
@@ -19,6 +23,8 @@ export default async function OpenTasksPage() {
     supabase.from("tasks").select("*").eq("user_id", user.id).eq("is_habit", true).returns<Task[]>(),
     supabase.from("skills").select("*").eq("user_id", user.id).returns<Skill[]>()
   ]);
+
+  const initialMode = searchParams?.mode === "habit" ? "habit" : "task";
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
@@ -37,7 +43,7 @@ export default async function OpenTasksPage() {
         </div>
       </section>
 
-      <OpenOverviewPanel tasks={tasks ?? []} habits={habits ?? []} skills={skills ?? []} />
+      <OpenOverviewPanel tasks={tasks ?? []} habits={habits ?? []} skills={skills ?? []} initialMode={initialMode} />
     </main>
   );
 }

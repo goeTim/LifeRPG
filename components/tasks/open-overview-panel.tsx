@@ -13,8 +13,18 @@ function currentWeekStartISO(now = new Date()) {
   return start.toISOString().slice(0, 10);
 }
 
-export function OpenOverviewPanel({ tasks, habits, skills }: { tasks: Task[]; habits: Task[]; skills: Skill[] }) {
-  const [mode, setMode] = useState<"task" | "habit">("task");
+export function OpenOverviewPanel({
+  tasks,
+  habits,
+  skills,
+  initialMode = "task"
+}: {
+  tasks: Task[];
+  habits: Task[];
+  skills: Skill[];
+  initialMode?: "task" | "habit";
+}) {
+  const [mode, setMode] = useState<"task" | "habit">(initialMode);
 
   const { dueToday, noDueDate, dueLaterOrEarlier, habitsDueToday, habitsWeeklyOpenNoDays, habitsDoneThisWeek } = useMemo(() => {
     const todayISO = new Date().toISOString().slice(0, 10);
