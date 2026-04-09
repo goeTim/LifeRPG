@@ -28,40 +28,42 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
         setLoading(true);
         setError(null);
 
-        const form = event.currentTarget;
-        const formData = new FormData(form);
-        if (skillEnabled) {
-          const selectedSkillId = String(formData.get("skill_id") ?? "").trim();
-          if (!selectedSkillId) {
-            setError("Bitte wähle einen Skill aus, wenn die Skill-Zuordnung aktiv ist.");
-            setLoading(false);
-            return;
+        try {
+          const form = event.currentTarget;
+          const formData = new FormData(form);
+          if (skillEnabled) {
+            const selectedSkillId = String(formData.get("skill_id") ?? "").trim();
+            if (!selectedSkillId) {
+              setError("Bitte wähle einen Skill aus, wenn die Skill-Zuordnung aktiv ist.");
+              return;
+            }
           }
-        }
-        if (dueDateEnabled) {
-          const dueDate = String(formData.get("due_date") ?? "").trim();
-          if (!dueDate) {
-            setError("Bitte gib ein Fälligkeitsdatum an oder deaktiviere die Option.");
-            setLoading(false);
-            return;
+          if (dueDateEnabled) {
+            const dueDate = String(formData.get("due_date") ?? "").trim();
+            if (!dueDate) {
+              setError("Bitte gib ein Fälligkeitsdatum an oder deaktiviere die Option.");
+              return;
+            }
           }
-        }
 
-        const response = await fetch("/api/tasks", { method: "POST", body: formData });
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({ error: "Task konnte nicht erstellt werden." }))) as { error?: string };
-          setError(payload.error ?? "Task konnte nicht erstellt werden.");
+          const response = await fetch("/api/tasks", { method: "POST", body: formData });
+          if (!response.ok) {
+            const payload = (await response.json().catch(() => ({ error: "Task konnte nicht erstellt werden." }))) as { error?: string };
+            setError(payload.error ?? "Task konnte nicht erstellt werden.");
+            return;
+          }
+
+          form.reset();
+          setSkillEnabled(false);
+          setSkillXpEnabled(false);
+          setDueDateEnabled(false);
+          setAttributeXpEnabled(false);
+          router.refresh();
+        } catch {
+          setError("Beim Speichern ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.");
+        } finally {
           setLoading(false);
-          return;
         }
-
-        form.reset();
-        setSkillEnabled(false);
-        setSkillXpEnabled(false);
-        setDueDateEnabled(false);
-        setAttributeXpEnabled(false);
-        setLoading(false);
-        router.refresh();
       }}
     >
       {error && <p className="rounded-lg border border-rose-600/30 bg-rose-900/20 p-2 text-sm text-rose-300">{error}</p>}

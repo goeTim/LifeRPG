@@ -38,42 +38,44 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
         setLoading(true);
         setError(null);
 
-        const form = event.currentTarget;
-        const formData = new FormData(form);
-        formData.set("is_habit", "on");
-        formData.set("habit_schedule_mode", scheduleMode);
-        if (skillEnabled) {
-          const selectedSkillId = String(formData.get("skill_id") ?? "").trim();
-          if (!selectedSkillId) {
-            setError("Bitte wähle einen Skill aus, wenn die Skill-Zuordnung aktiv ist.");
-            setLoading(false);
-            return;
+        try {
+          const form = event.currentTarget;
+          const formData = new FormData(form);
+          formData.set("is_habit", "on");
+          formData.set("habit_schedule_mode", scheduleMode);
+          if (skillEnabled) {
+            const selectedSkillId = String(formData.get("skill_id") ?? "").trim();
+            if (!selectedSkillId) {
+              setError("Bitte wähle einen Skill aus, wenn die Skill-Zuordnung aktiv ist.");
+              return;
+            }
           }
-        }
-        if (scheduleMode === "days") {
-          const selectedDays = formData.getAll("habit_days");
-          if (selectedDays.length === 0) {
-            setError("Bitte wähle mindestens einen Wochentag aus.");
-            setLoading(false);
-            return;
+          if (scheduleMode === "days") {
+            const selectedDays = formData.getAll("habit_days");
+            if (selectedDays.length === 0) {
+              setError("Bitte wähle mindestens einen Wochentag aus.");
+              return;
+            }
           }
-        }
 
-        const response = await fetch("/api/tasks", { method: "POST", body: formData });
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => ({ error: "Gewohnheit konnte nicht erstellt werden." }))) as { error?: string };
-          setError(payload.error ?? "Gewohnheit konnte nicht erstellt werden.");
+          const response = await fetch("/api/tasks", { method: "POST", body: formData });
+          if (!response.ok) {
+            const payload = (await response.json().catch(() => ({ error: "Gewohnheit konnte nicht erstellt werden." }))) as { error?: string };
+            setError(payload.error ?? "Gewohnheit konnte nicht erstellt werden.");
+            return;
+          }
+
+          form.reset();
+          setSkillEnabled(false);
+          setSkillXpEnabled(false);
+          setAttributeXpEnabled(false);
+          setScheduleMode("frequency");
+          router.refresh();
+        } catch {
+          setError("Beim Speichern ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.");
+        } finally {
           setLoading(false);
-          return;
         }
-
-        form.reset();
-        setSkillEnabled(false);
-        setSkillXpEnabled(false);
-        setAttributeXpEnabled(false);
-        setScheduleMode("frequency");
-        setLoading(false);
-        router.refresh();
       }}
     >
       {error && <p className="rounded-lg border border-rose-600/30 bg-rose-900/20 p-2 text-sm text-rose-300">{error}</p>}
