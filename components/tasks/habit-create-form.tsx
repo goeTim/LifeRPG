@@ -38,7 +38,8 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
         setLoading(true);
         setError(null);
 
-        const formData = new FormData(event.currentTarget);
+        const form = event.currentTarget;
+        const formData = new FormData(form);
         formData.set("is_habit", "on");
         formData.set("habit_schedule_mode", scheduleMode);
         if (skillEnabled) {
@@ -66,7 +67,7 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
           return;
         }
 
-        event.currentTarget.reset();
+        form.reset();
         setSkillEnabled(false);
         setSkillXpEnabled(false);
         setAttributeXpEnabled(false);

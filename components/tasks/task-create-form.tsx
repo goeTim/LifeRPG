@@ -28,7 +28,8 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
         setLoading(true);
         setError(null);
 
-        const formData = new FormData(event.currentTarget);
+        const form = event.currentTarget;
+        const formData = new FormData(form);
         if (skillEnabled) {
           const selectedSkillId = String(formData.get("skill_id") ?? "").trim();
           if (!selectedSkillId) {
@@ -54,7 +55,7 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
           return;
         }
 
-        event.currentTarget.reset();
+        form.reset();
         setSkillEnabled(false);
         setSkillXpEnabled(false);
         setDueDateEnabled(false);
