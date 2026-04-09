@@ -23,7 +23,7 @@ export function TaskList({ tasks, skills, title = "Heutige Tasks", emptyLabel = 
       <h2 className="text-lg font-semibold">{title}</h2>
       {tasks.length === 0 && <p className="text-sm text-slate-400">{emptyLabel}</p>}
       {tasks.map((task) => {
-        const weeklyTarget = task.habit_frequency_per_week ?? 0;
+        const weeklyTarget = task.habit_frequency_per_week ?? (task.habit_days?.length ?? 0);
         const weeklyCount = task.habit_week_start === weekStart ? task.habit_weekly_completions : 0;
         const weeklyDone = task.is_habit && weeklyCount >= weeklyTarget && weeklyTarget > 0;
         const completedToday = task.completed_at?.slice(0, 10) === todayISO;
