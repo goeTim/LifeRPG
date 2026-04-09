@@ -13,17 +13,25 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const payload = (await request.json().catch(() => ({}))) as Partial<Task>;
+  const hasHabitDays = Array.isArray(payload.habit_days) && payload.habit_days.length > 0;
+  const hasHabitFrequency = typeof payload.habit_frequency_per_week === "number" && payload.habit_frequency_per_week > 0;
+  const normalizedHabitDays = hasHabitDays ? payload.habit_days : null;
+  const normalizedHabitFrequency = hasHabitDays ? null : hasHabitFrequency ? payload.habit_frequency_per_week : null;
+  const normalizedSkillId = payload.skill_id ?? null;
+  const normalizedSkillXpReward = normalizedSkillId ? payload.skill_xp_reward : 0;
 
   const updatePayload = {
     title: payload.title,
     xp_value: payload.xp_value,
-    skill_id: payload.skill_id ?? null,
-    skill_xp_reward: payload.skill_xp_reward,
+    points_value: payload.points_value,
+    attribute_xp_rewards: payload.attribute_xp_rewards ?? {},
+    skill_id: normalizedSkillId,
+    skill_xp_reward: normalizedSkillXpReward,
     due_date: payload.due_date ?? null,
     is_completed: payload.is_completed,
     is_habit: payload.is_habit,
-    habit_frequency_per_week: payload.habit_frequency_per_week ?? null,
-    habit_days: payload.habit_days ?? null
+    habit_frequency_per_week: normalizedHabitFrequency,
+    habit_days: normalizedHabitDays
   };
 
   const sanitizedPayload = Object.fromEntries(Object.entries(updatePayload).filter(([, value]) => value !== undefined));
