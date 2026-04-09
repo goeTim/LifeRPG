@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { TaskList } from "@/components/task-list";
+import { OpenOverviewPanel } from "@/components/tasks/open-overview-panel";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { Skill, Task } from "@/types/domain";
 
@@ -14,19 +14,11 @@ export default async function OpenTasksPage() {
     redirect("/login");
   }
 
-  const [{ data: tasks }, { data: skills }] = await Promise.all([
+  const [{ data: tasks }, { data: habits }, { data: skills }] = await Promise.all([
     supabase.from("tasks").select("*").eq("user_id", user.id).eq("is_habit", false).eq("is_completed", false).returns<Task[]>(),
+    supabase.from("tasks").select("*").eq("user_id", user.id).eq("is_habit", true).returns<Task[]>(),
     supabase.from("skills").select("*").eq("user_id", user.id).returns<Skill[]>()
   ]);
-
-  const today = new Date().toISOString().slice(0, 10);
-  const openTasks = tasks ?? [];
-
-  const dueToday = openTasks.filter((task) => task.due_date === today);
-  const noDueDate = openTasks.filter((task) => !task.due_date);
-  const dueLaterOrEarlier = openTasks
-    .filter((task) => task.due_date && task.due_date !== today)
-    .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl space-y-6 px-4 py-8 sm:px-6">
@@ -45,14 +37,7 @@ export default async function OpenTasksPage() {
         </div>
       </section>
 
-      <TaskList tasks={dueToday} skills={skills ?? []} title="1) Fällig heute" emptyLabel="Keine heute fälligen Tasks." />
-      <TaskList tasks={noDueDate} skills={skills ?? []} title="2) Ohne Fälligkeitsdatum" emptyLabel="Keine offenen Tasks ohne Datum." />
-      <TaskList
-        tasks={dueLaterOrEarlier}
-        skills={skills ?? []}
-        title="3) Alle übrigen mit Fälligkeitsdatum"
-        emptyLabel="Keine weiteren offenen Tasks mit Datum."
-      />
+      <OpenOverviewPanel tasks={tasks ?? []} habits={habits ?? []} skills={skills ?? []} />
     </main>
   );
 }
