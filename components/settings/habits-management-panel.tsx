@@ -7,6 +7,15 @@ import { SectionHeader } from "@/components/settings/section-header";
 import { Skill, Task } from "@/types/domain";
 
 const weekdayLabel: Record<number, string> = { 0: "So", 1: "Mo", 2: "Di", 3: "Mi", 4: "Do", 5: "Fr", 6: "Sa" };
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: "Mo" },
+  { value: 2, label: "Di" },
+  { value: 3, label: "Mi" },
+  { value: 4, label: "Do" },
+  { value: 5, label: "Fr" },
+  { value: 6, label: "Sa" },
+  { value: 0, label: "So" }
+];
 
 type HabitScheduleMode = "frequency" | "days";
 
@@ -65,9 +74,9 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                 onChange={(e) => setEditing({ ...editing, xp_value: Number(e.target.value) })}
               />
             </label>
-            <label className="space-y-1 text-xs text-slate-300">
-              <span>Planungsmodus</span>
-              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-700 p-2">
+            <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/40 p-3 md:col-span-2">
+              <span className="text-xs text-slate-300">Planungsmodus</span>
+              <div className="grid grid-cols-2 gap-2">
                 <label className="text-xs text-slate-200">
                   <input
                     className="mr-2"
@@ -101,18 +110,42 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                   Wochentage
                 </label>
               </div>
-            </label>
-            <label className="space-y-1 text-xs text-slate-300">
-              <span>Frequenz pro Woche (wie oft die Gewohnheit erledigt werden soll)</span>
-              <input
-                className="input disabled:opacity-50"
-                type="number"
-                min={1}
-                value={editing.habit_frequency_per_week ?? 1}
-                disabled={editing.schedule_mode !== "frequency"}
-                onChange={(e) => setEditing({ ...editing, habit_frequency_per_week: Number(e.target.value) })}
-              />
-            </label>
+              <label className="space-y-1 text-xs text-slate-300">
+                <span>Wie oft pro Woche?</span>
+                <input
+                  className="input disabled:opacity-50"
+                  type="number"
+                  min={1}
+                  value={editing.habit_frequency_per_week ?? 1}
+                  disabled={editing.schedule_mode !== "frequency"}
+                  onChange={(e) => setEditing({ ...editing, habit_frequency_per_week: Number(e.target.value) })}
+                />
+              </label>
+              <div className="space-y-1 text-xs text-slate-300">
+                <span>Spezifische Wochentage</span>
+                <div className={`grid grid-cols-4 gap-2 ${editing.schedule_mode !== "days" ? "pointer-events-none opacity-50" : ""}`}>
+                  {WEEKDAY_OPTIONS.map((day) => {
+                    const checked = (editing.habit_days ?? []).includes(day.value);
+                    return (
+                      <label key={day.value} className="rounded-md border border-slate-700 px-2 py-1 text-center text-xs text-slate-200">
+                        <input
+                          className="mr-1"
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            const current = editing.habit_days ?? [];
+                            const next = event.target.checked ? [...current, day.value] : current.filter((value) => value !== day.value);
+                            const uniqueSorted = Array.from(new Set(next)).sort((a, b) => a - b);
+                            setEditing({ ...editing, habit_days: uniqueSorted.length ? uniqueSorted : null });
+                          }}
+                        />
+                        {day.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
             <label className="space-y-1 text-xs text-slate-300">
               <span>Skill-XP (zusätzliche XP für den gewählten Skill)</span>
               <input
@@ -134,22 +167,6 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="space-y-1 text-xs text-slate-300">
-              <span>Wochentage (0=So bis 6=Sa, kommasepariert; leer = jeden Tag)</span>
-              <input
-                className="input disabled:opacity-50"
-                value={(editing.habit_days ?? []).join(",")}
-                disabled={editing.schedule_mode !== "days"}
-                onChange={(e) => {
-                  const days = e.target.value
-                    .split(",")
-                    .map((value) => Number(value.trim()))
-                    .filter((value) => !Number.isNaN(value) && value >= 0 && value <= 6);
-                  setEditing({ ...editing, habit_days: days.length ? days : null });
-                }}
-                placeholder="Tage 0-6, z.B. 1,3,5"
-              />
             </label>
           </div>
 
