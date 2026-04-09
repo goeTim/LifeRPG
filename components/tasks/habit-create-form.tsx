@@ -41,6 +41,14 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
         const formData = new FormData(event.currentTarget);
         formData.set("is_habit", "on");
         formData.set("habit_schedule_mode", scheduleMode);
+        if (skillEnabled) {
+          const selectedSkillId = String(formData.get("skill_id") ?? "").trim();
+          if (!selectedSkillId) {
+            setError("Bitte wähle einen Skill aus, wenn die Skill-Zuordnung aktiv ist.");
+            setLoading(false);
+            return;
+          }
+        }
         if (scheduleMode === "days") {
           const selectedDays = formData.getAll("habit_days");
           if (selectedDays.length === 0) {
@@ -138,34 +146,51 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
         </section>
       </FormSection>
 
-      <FormSection title="Optionale Einstellungen">
+      <FormSection title="Skill" description="Skill-Zuordnung und Skill-XP gehören zusammen.">
         <OptionalFieldToggle
           id="habit-skill-toggle"
           checked={skillEnabled}
-          onChange={setSkillEnabled}
+          onChange={(checked) => {
+            if (checked && skills.length === 0) {
+              setError("Du hast noch keine Skills erstellt. Bitte lege zuerst einen Skill an.");
+              return;
+            }
+            setSkillEnabled(checked);
+            if (!checked) {
+              setSkillXpEnabled(false);
+            }
+          }}
           label="Skill-Zuordnung aktivieren"
-          hint="Ordne diese Gewohnheit einem trainierten Skill zu."
+          hint="Wenn aktiviert, muss ein Skill ausgewählt werden."
         >
           <DisabledFieldWrapper enabled={skillEnabled}>
-            <SkillPicker skills={skills} label="Trainierter Skill" />
+            <SkillPicker skills={skills} label="Trainierter Skill" optional={false} required={skillEnabled} />
           </DisabledFieldWrapper>
         </OptionalFieldToggle>
 
         <OptionalFieldToggle
           id="habit-skill-xp-toggle"
           checked={skillXpEnabled}
-          onChange={setSkillXpEnabled}
+          onChange={(checked) => {
+            if (!skillEnabled) {
+              setError("Aktiviere zuerst die Skill-Zuordnung.");
+              return;
+            }
+            setSkillXpEnabled(checked);
+          }}
           label="Zusätzliche Skill-XP aktivieren"
-          hint="Verteile extra XP auf den zugeordneten Skill."
+          hint="Nur möglich, wenn die Skill-Zuordnung aktiv ist."
         >
-          <DisabledFieldWrapper enabled={skillXpEnabled}>
+          <DisabledFieldWrapper enabled={skillXpEnabled && skillEnabled}>
             <div className="space-y-1">
               <label className="text-sm text-slate-300">Skill-XP Belohnung</label>
               <input className="input" name="skill_xp_reward" placeholder="0" type="number" min={0} step={5} defaultValue={0} />
             </div>
           </DisabledFieldWrapper>
         </OptionalFieldToggle>
+      </FormSection>
 
+      <FormSection title="Optionale Einstellungen">
         <OptionalFieldToggle
           id="habit-attr-xp-toggle"
           checked={attributeXpEnabled}

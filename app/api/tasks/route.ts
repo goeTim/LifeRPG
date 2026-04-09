@@ -41,6 +41,9 @@ export async function POST(request: Request) {
   if (isHabit && scheduleWithDays && (!normalizedHabitDays || normalizedHabitDays.length === 0)) {
     return NextResponse.json({ error: "Bitte mindestens einen Wochentag für die Gewohnheit auswählen." }, { status: 400 });
   }
+  if (!skillId && skillXpReward > 0) {
+    return NextResponse.json({ error: "Skill-XP ist nur mit aktiver Skill-Zuordnung möglich." }, { status: 400 });
+  }
 
   const attributeXpRewards = ATTRIBUTE_ORDER.reduce<Partial<Record<AttributeKey, number>>>((acc, key) => {
     const raw = Number(formData.get(`attr_xp_${key}`) ?? 0);

@@ -17,12 +17,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   const hasHabitFrequency = typeof payload.habit_frequency_per_week === "number" && payload.habit_frequency_per_week > 0;
   const normalizedHabitDays = hasHabitDays ? payload.habit_days : null;
   const normalizedHabitFrequency = hasHabitDays ? null : hasHabitFrequency ? payload.habit_frequency_per_week : null;
+  const normalizedSkillId = payload.skill_id ?? null;
+  const normalizedSkillXpReward = normalizedSkillId ? payload.skill_xp_reward : 0;
 
   const updatePayload = {
     title: payload.title,
     xp_value: payload.xp_value,
-    skill_id: payload.skill_id ?? null,
-    skill_xp_reward: payload.skill_xp_reward,
+    skill_id: normalizedSkillId,
+    skill_xp_reward: normalizedSkillXpReward,
     due_date: payload.due_date ?? null,
     is_completed: payload.is_completed,
     is_habit: payload.is_habit,

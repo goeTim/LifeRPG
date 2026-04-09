@@ -29,6 +29,15 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
         setError(null);
 
         const formData = new FormData(event.currentTarget);
+        if (skillEnabled) {
+          const selectedSkillId = String(formData.get("skill_id") ?? "").trim();
+          if (!selectedSkillId) {
+            setError("Bitte wähle einen Skill aus, wenn die Skill-Zuordnung aktiv ist.");
+            setLoading(false);
+            return;
+          }
+        }
+
         const response = await fetch("/api/tasks", { method: "POST", body: formData });
         if (!response.ok) {
           const payload = (await response.json().catch(() => ({ error: "Task konnte nicht erstellt werden." }))) as { error?: string };
@@ -67,34 +76,51 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
         </div>
       </FormSection>
 
-      <FormSection title="Optionale Einstellungen">
+      <FormSection title="Skill" description="Skill-Zuordnung und Skill-XP gehören zusammen.">
         <OptionalFieldToggle
           id="task-skill-toggle"
           checked={skillEnabled}
-          onChange={setSkillEnabled}
+          onChange={(checked) => {
+            if (checked && skills.length === 0) {
+              setError("Du hast noch keine Skills erstellt. Bitte lege zuerst einen Skill an.");
+              return;
+            }
+            setSkillEnabled(checked);
+            if (!checked) {
+              setSkillXpEnabled(false);
+            }
+          }}
           label="Skill-Zuordnung aktivieren"
-          hint="Ordne diesen Task einem trainierten Skill zu."
+          hint="Wenn aktiviert, muss ein Skill ausgewählt werden."
         >
           <DisabledFieldWrapper enabled={skillEnabled}>
-            <SkillPicker skills={skills} label="Trainierter Skill" />
+            <SkillPicker skills={skills} label="Trainierter Skill" optional={false} required={skillEnabled} />
           </DisabledFieldWrapper>
         </OptionalFieldToggle>
 
         <OptionalFieldToggle
           id="task-skill-xp-toggle"
           checked={skillXpEnabled}
-          onChange={setSkillXpEnabled}
+          onChange={(checked) => {
+            if (!skillEnabled) {
+              setError("Aktiviere zuerst die Skill-Zuordnung.");
+              return;
+            }
+            setSkillXpEnabled(checked);
+          }}
           label="Zusätzliche Skill-XP aktivieren"
-          hint="Verteile extra XP auf den zugeordneten Skill."
+          hint="Nur möglich, wenn die Skill-Zuordnung aktiv ist."
         >
-          <DisabledFieldWrapper enabled={skillXpEnabled}>
+          <DisabledFieldWrapper enabled={skillXpEnabled && skillEnabled}>
             <div className="space-y-1">
               <label className="text-sm text-slate-300">Skill-XP Belohnung</label>
               <input className="input" name="skill_xp_reward" placeholder="0" type="number" min={0} step={5} defaultValue={0} />
             </div>
           </DisabledFieldWrapper>
         </OptionalFieldToggle>
+      </FormSection>
 
+      <FormSection title="Optionale Einstellungen">
         <OptionalFieldToggle
           id="task-due-date-toggle"
           checked={dueDateEnabled}

@@ -21,6 +21,8 @@ type HabitScheduleMode = "frequency" | "days";
 
 type EditableHabit = Pick<Task, "id" | "title" | "xp_value" | "skill_id" | "habit_frequency_per_week" | "habit_days" | "skill_xp_reward"> & {
   schedule_mode: HabitScheduleMode;
+  skill_enabled: boolean;
+  skill_xp_enabled: boolean;
 };
 
 async function request(url: string, options: RequestInit) {
@@ -146,28 +148,71 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                 </div>
               </div>
             </div>
-            <label className="space-y-1 text-xs text-slate-300">
-              <span>Skill-XP (zusätzliche XP für den gewählten Skill)</span>
-              <input
-                className="input"
-                type="number"
-                min={0}
-                value={editing.skill_xp_reward}
-                onChange={(e) => setEditing({ ...editing, skill_xp_reward: Number(e.target.value) })}
-                placeholder="Skill-XP"
-              />
-            </label>
-            <label className="space-y-1 text-xs text-slate-300">
-              <span>Zugeordneter Skill (optional)</span>
-              <select className="input" value={editing.skill_id ?? ""} onChange={(e) => setEditing({ ...editing, skill_id: e.target.value || null })}>
-                <option value="">Kein Skill</option>
-                {skills.map((skill) => (
-                  <option key={skill.id} value={skill.id}>
-                    {skill.icon ?? "🎯"} {skill.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="space-y-2 rounded-xl border border-slate-700 bg-slate-900/40 p-3 md:col-span-2">
+              <p className="text-xs text-slate-300">Skill</p>
+              <label className="flex items-center gap-2 text-xs text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={editing.skill_enabled}
+                  onChange={(e) => {
+                    if (e.target.checked && skills.length === 0) {
+                      setError("Du hast noch keine Skills erstellt. Bitte lege zuerst einen Skill an.");
+                      return;
+                    }
+                    setEditing({
+                      ...editing,
+                      skill_enabled: e.target.checked,
+                      skill_id: e.target.checked ? editing.skill_id ?? skills[0]?.id ?? null : null,
+                      skill_xp_enabled: e.target.checked ? editing.skill_xp_enabled : false,
+                      skill_xp_reward: e.target.checked ? editing.skill_xp_reward : 0
+                    });
+                  }}
+                />
+                Skill-Zuordnung aktivieren
+              </label>
+              <div className={editing.skill_enabled ? "" : "pointer-events-none opacity-50"}>
+                <label className="space-y-1 text-xs text-slate-300">
+                  <span>Zugeordneter Skill</span>
+                  <select className="input" value={editing.skill_id ?? ""} onChange={(e) => setEditing({ ...editing, skill_id: e.target.value || null })}>
+                    <option value="" disabled>
+                      Skill auswählen
+                    </option>
+                    {skills.map((skill) => (
+                      <option key={skill.id} value={skill.id}>
+                        {skill.icon ?? "🎯"} {skill.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={editing.skill_xp_enabled}
+                  onChange={(e) => {
+                    if (e.target.checked && !editing.skill_enabled) {
+                      setError("Aktiviere zuerst die Skill-Zuordnung.");
+                      return;
+                    }
+                    setEditing({ ...editing, skill_xp_enabled: e.target.checked, skill_xp_reward: e.target.checked ? editing.skill_xp_reward : 0 });
+                  }}
+                />
+                Zusätzliche Skill-XP aktivieren
+              </label>
+              <div className={editing.skill_xp_enabled && editing.skill_enabled ? "" : "pointer-events-none opacity-50"}>
+                <label className="space-y-1 text-xs text-slate-300">
+                  <span>Skill-XP (zusätzliche XP für den gewählten Skill)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    value={editing.skill_xp_reward}
+                    onChange={(e) => setEditing({ ...editing, skill_xp_reward: Number(e.target.value) })}
+                    placeholder="Skill-XP"
+                  />
+                </label>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-2">
@@ -180,9 +225,15 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                     setError("Bei Modus 'Wochentage' musst du mindestens einen Tag setzen.");
                     return;
                   }
+                  if (editing.skill_enabled && !editing.skill_id) {
+                    setError("Bitte wähle einen Skill aus, wenn die Skill-Zuordnung aktiv ist.");
+                    return;
+                  }
 
                   const normalizedPayload = {
                     ...editing,
+                    skill_id: editing.skill_enabled ? editing.skill_id : null,
+                    skill_xp_reward: editing.skill_enabled && editing.skill_xp_enabled ? editing.skill_xp_reward : 0,
                     habit_frequency_per_week: editing.schedule_mode === "frequency" ? editing.habit_frequency_per_week ?? 3 : null,
                     habit_days: editing.schedule_mode === "days" ? editing.habit_days ?? [] : null
                   };
@@ -240,7 +291,9 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                         habit_frequency_per_week: habit.habit_frequency_per_week,
                         habit_days: habit.habit_days,
                         skill_xp_reward: habit.skill_xp_reward,
-                        schedule_mode: habit.habit_days && habit.habit_days.length > 0 ? "days" : "frequency"
+                        schedule_mode: habit.habit_days && habit.habit_days.length > 0 ? "days" : "frequency",
+                        skill_enabled: Boolean(habit.skill_id),
+                        skill_xp_enabled: Boolean(habit.skill_id) && habit.skill_xp_reward > 0
                       })
                     }
                   >
