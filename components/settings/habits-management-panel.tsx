@@ -286,7 +286,7 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                     ...editing,
                     skill_id: editing.skill_enabled ? editing.skill_id : null,
                     skill_xp_reward: editing.skill_enabled && editing.skill_xp_enabled ? editing.skill_xp_reward : 0,
-                    attribute_xp_rewards: editing.attribute_xp_enabled ? editing.attribute_xp_rewards ?? {} : null,
+                    attribute_xp_rewards: editing.attribute_xp_enabled ? editing.attribute_xp_rewards ?? {} : {},
                     habit_frequency_per_week: editing.schedule_mode === "frequency" ? editing.habit_frequency_per_week ?? 3 : null,
                     habit_days: editing.schedule_mode === "days" ? editing.habit_days ?? [] : null
                   };

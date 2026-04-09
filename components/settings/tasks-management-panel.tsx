@@ -225,7 +225,7 @@ export function TasksManagementPanel({ initialTasks, skills }: { initialTasks: T
                     skill_id: editing.skill_enabled ? editing.skill_id : null,
                     skill_xp_reward: editing.skill_enabled && editing.skill_xp_enabled ? editing.skill_xp_reward : 0,
                     due_date: editing.due_date_enabled ? editing.due_date : null,
-                    attribute_xp_rewards: editing.attribute_xp_enabled ? editing.attribute_xp_rewards ?? {} : null
+                    attribute_xp_rewards: editing.attribute_xp_enabled ? editing.attribute_xp_rewards ?? {} : {}
                   };
                   const payload = await request(`/api/tasks/${editing.id}`, { method: "PATCH", body: JSON.stringify(normalizedPayload) });
                   setTasks((current) => current.map((task) => (task.id === editing.id ? payload.task : task)));

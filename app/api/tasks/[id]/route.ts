@@ -24,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     title: payload.title,
     xp_value: payload.xp_value,
     points_value: payload.points_value,
-    attribute_xp_rewards: payload.attribute_xp_rewards ?? null,
+    attribute_xp_rewards: payload.attribute_xp_rewards ?? {},
     skill_id: normalizedSkillId,
     skill_xp_reward: normalizedSkillXpReward,
     due_date: payload.due_date ?? null,
