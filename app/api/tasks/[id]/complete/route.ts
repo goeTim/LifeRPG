@@ -46,7 +46,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     const currentWeekStart = weekStartISO(now);
     const previousWeekCompletions = task.habit_week_start === currentWeekStart ? task.habit_weekly_completions : 0;
-    const weeklyTarget = task.habit_frequency_per_week ?? 1;
+    const weeklyTarget = task.habit_frequency_per_week ?? Math.max(1, task.habit_days?.length ?? 1);
 
     if (previousWeekCompletions >= weeklyTarget) {
       return NextResponse.json({ error: "Wochenziel bereits erreicht." }, { status: 400 });
