@@ -13,6 +13,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const payload = (await request.json().catch(() => ({}))) as Partial<Task>;
+  const hasHabitDays = Array.isArray(payload.habit_days) && payload.habit_days.length > 0;
+  const hasHabitFrequency = typeof payload.habit_frequency_per_week === "number" && payload.habit_frequency_per_week > 0;
+  const normalizedHabitDays = hasHabitDays ? payload.habit_days : null;
+  const normalizedHabitFrequency = hasHabitDays ? null : hasHabitFrequency ? payload.habit_frequency_per_week : null;
 
   const updatePayload = {
     title: payload.title,
@@ -22,8 +26,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     due_date: payload.due_date ?? null,
     is_completed: payload.is_completed,
     is_habit: payload.is_habit,
-    habit_frequency_per_week: payload.habit_frequency_per_week ?? null,
-    habit_days: payload.habit_days ?? null
+    habit_frequency_per_week: normalizedHabitFrequency,
+    habit_days: normalizedHabitDays
   };
 
   const sanitizedPayload = Object.fromEntries(Object.entries(updatePayload).filter(([, value]) => value !== undefined));

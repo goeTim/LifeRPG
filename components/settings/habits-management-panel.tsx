@@ -8,7 +8,11 @@ import { Skill, Task } from "@/types/domain";
 
 const weekdayLabel: Record<number, string> = { 0: "So", 1: "Mo", 2: "Di", 3: "Mi", 4: "Do", 5: "Fr", 6: "Sa" };
 
-type EditableHabit = Pick<Task, "id" | "title" | "xp_value" | "skill_id" | "habit_frequency_per_week" | "habit_days" | "skill_xp_reward">;
+type HabitScheduleMode = "frequency" | "days";
+
+type EditableHabit = Pick<Task, "id" | "title" | "xp_value" | "skill_id" | "habit_frequency_per_week" | "habit_days" | "skill_xp_reward"> & {
+  schedule_mode: HabitScheduleMode;
+};
 
 async function request(url: string, options: RequestInit) {
   const response = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...(options.headers ?? {}) } });
@@ -62,12 +66,50 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
               />
             </label>
             <label className="space-y-1 text-xs text-slate-300">
+              <span>Planungsmodus</span>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-700 p-2">
+                <label className="text-xs text-slate-200">
+                  <input
+                    className="mr-2"
+                    type="radio"
+                    checked={editing.schedule_mode === "frequency"}
+                    onChange={() =>
+                      setEditing({
+                        ...editing,
+                        schedule_mode: "frequency",
+                        habit_days: null,
+                        habit_frequency_per_week: editing.habit_frequency_per_week ?? 3
+                      })
+                    }
+                  />
+                  Wochenziel
+                </label>
+                <label className="text-xs text-slate-200">
+                  <input
+                    className="mr-2"
+                    type="radio"
+                    checked={editing.schedule_mode === "days"}
+                    onChange={() =>
+                      setEditing({
+                        ...editing,
+                        schedule_mode: "days",
+                        habit_frequency_per_week: null,
+                        habit_days: editing.habit_days ?? []
+                      })
+                    }
+                  />
+                  Wochentage
+                </label>
+              </div>
+            </label>
+            <label className="space-y-1 text-xs text-slate-300">
               <span>Frequenz pro Woche (wie oft die Gewohnheit erledigt werden soll)</span>
               <input
-                className="input"
+                className="input disabled:opacity-50"
                 type="number"
                 min={1}
                 value={editing.habit_frequency_per_week ?? 1}
+                disabled={editing.schedule_mode !== "frequency"}
                 onChange={(e) => setEditing({ ...editing, habit_frequency_per_week: Number(e.target.value) })}
               />
             </label>
@@ -96,8 +138,9 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
             <label className="space-y-1 text-xs text-slate-300">
               <span>Wochentage (0=So bis 6=Sa, kommasepariert; leer = jeden Tag)</span>
               <input
-                className="input"
+                className="input disabled:opacity-50"
                 value={(editing.habit_days ?? []).join(",")}
+                disabled={editing.schedule_mode !== "days"}
                 onChange={(e) => {
                   const days = e.target.value
                     .split(",")
@@ -116,9 +159,19 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
               onClick={async () => {
                 try {
                   setError(null);
+                  if (editing.schedule_mode === "days" && (!editing.habit_days || editing.habit_days.length === 0)) {
+                    setError("Bei Modus 'Wochentage' musst du mindestens einen Tag setzen.");
+                    return;
+                  }
+
+                  const normalizedPayload = {
+                    ...editing,
+                    habit_frequency_per_week: editing.schedule_mode === "frequency" ? editing.habit_frequency_per_week ?? 3 : null,
+                    habit_days: editing.schedule_mode === "days" ? editing.habit_days ?? [] : null
+                  };
                   const payload = await request(`/api/tasks/${editing.id}`, {
                     method: "PATCH",
-                    body: JSON.stringify({ ...editing, is_habit: true })
+                    body: JSON.stringify({ ...normalizedPayload, is_habit: true })
                   });
                   setHabits((current) => current.map((habit) => (habit.id === editing.id ? payload.task : habit)));
                   setEditing(null);
@@ -146,7 +199,11 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                 <div>
                   <h3 className="font-semibold">{habit.title}</h3>
                   <p className="text-xs text-slate-400">
-                    {habit.xp_value} globale XP · Frequenz: {habit.habit_frequency_per_week ?? 1}/Woche · Status: aktiv
+                    {habit.xp_value} globale XP ·{" "}
+                    {habit.habit_days && habit.habit_days.length
+                      ? `Modus: Wochentage (${habit.habit_days.length} Tage)`
+                      : `Modus: Wochenziel (${habit.habit_frequency_per_week ?? 1}/Woche)`}{" "}
+                    · Status: aktiv
                   </p>
                   <p className="text-xs text-cyan-300">Skill: {habit.skill_id ? skillNameById[habit.skill_id] ?? "(gelöscht)" : "nicht zugeordnet"}</p>
                   <p className="text-xs text-violet-300">
@@ -165,7 +222,8 @@ export function HabitsManagementPanel({ initialHabits, skills }: { initialHabits
                         skill_id: habit.skill_id,
                         habit_frequency_per_week: habit.habit_frequency_per_week,
                         habit_days: habit.habit_days,
-                        skill_xp_reward: habit.skill_xp_reward
+                        skill_xp_reward: habit.skill_xp_reward,
+                        schedule_mode: habit.habit_days && habit.habit_days.length > 0 ? "days" : "frequency"
                       })
                     }
                   >

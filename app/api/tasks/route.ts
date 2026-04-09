@@ -19,6 +19,7 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const isHabit = formData.get("is_habit") === "on";
+  const habitScheduleMode = String(formData.get("habit_schedule_mode") ?? "frequency");
   const habitDays = formData
     .getAll("habit_days")
     .map((day) => Number(day))
@@ -31,6 +32,15 @@ export async function POST(request: Request) {
   const dueDate = !isHabit && formData.get("due_date") ? String(formData.get("due_date")) : null;
   const skillId = String(formData.get("skill_id") ?? "").trim() || null;
   const skillXpReward = Math.max(0, Number(formData.get("skill_xp_reward") ?? 0));
+  const rawHabitFrequency = Number(formData.get("habit_frequency_per_week") ?? 0);
+  const parsedHabitFrequency = Number.isFinite(rawHabitFrequency) && rawHabitFrequency > 0 ? rawHabitFrequency : null;
+  const scheduleWithDays = habitScheduleMode === "days";
+  const normalizedHabitDays = scheduleWithDays ? habitDays : null;
+  const normalizedHabitFrequency = scheduleWithDays ? null : parsedHabitFrequency ?? 1;
+
+  if (isHabit && scheduleWithDays && (!normalizedHabitDays || normalizedHabitDays.length === 0)) {
+    return NextResponse.json({ error: "Bitte mindestens einen Wochentag für die Gewohnheit auswählen." }, { status: 400 });
+  }
 
   const attributeXpRewards = ATTRIBUTE_ORDER.reduce<Partial<Record<AttributeKey, number>>>((acc, key) => {
     const raw = Number(formData.get(`attr_xp_${key}`) ?? 0);
@@ -52,8 +62,8 @@ export async function POST(request: Request) {
     skill_xp_reward: skillXpReward,
     due_date: dueDate,
     is_habit: isHabit,
-    habit_days: isHabit ? habitDays : null,
-    habit_frequency_per_week: isHabit ? Number(formData.get("habit_frequency_per_week") ?? 1) : null,
+    habit_days: isHabit ? normalizedHabitDays : null,
+    habit_frequency_per_week: isHabit ? normalizedHabitFrequency : null,
     habit_weekly_completions: 0,
     habit_week_start: null
   };

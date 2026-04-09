@@ -25,6 +25,7 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scheduleMode, setScheduleMode] = useState<"frequency" | "days">("frequency");
   const [skillEnabled, setSkillEnabled] = useState(false);
   const [skillXpEnabled, setSkillXpEnabled] = useState(false);
   const [habitDaysEnabled, setHabitDaysEnabled] = useState(false);
@@ -40,6 +41,21 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
 
         const formData = new FormData(event.currentTarget);
         formData.set("is_habit", "on");
+        formData.set("habit_schedule_mode", scheduleMode);
+        if (scheduleMode === "days") {
+          if (!habitDaysEnabled) {
+            setError("Bitte aktiviere Wochentage oder wechsle auf Wochenziel.");
+            setLoading(false);
+            return;
+          }
+
+          const selectedDays = formData.getAll("habit_days");
+          if (selectedDays.length === 0) {
+            setError("Bitte wähle mindestens einen Wochentag aus.");
+            setLoading(false);
+            return;
+          }
+        }
 
         const response = await fetch("/api/tasks", { method: "POST", body: formData });
         if (!response.ok) {
@@ -54,6 +70,7 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
         setSkillXpEnabled(false);
         setHabitDaysEnabled(false);
         setAttributeXpEnabled(false);
+        setScheduleMode("frequency");
         setLoading(false);
         router.refresh();
       }}
@@ -78,10 +95,38 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-sm text-slate-300">Wie oft pro Woche?</label>
-          <input className="input" name="habit_frequency_per_week" type="number" min={1} max={14} defaultValue={3} required />
+        <div className="space-y-2">
+          <p className="text-sm text-slate-300">Planungsmodus</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="rounded-lg border border-slate-700 p-2 text-sm text-slate-200">
+              <input
+                className="mr-2"
+                type="radio"
+                name="habit_schedule_mode_ui"
+                checked={scheduleMode === "frequency"}
+                onChange={() => setScheduleMode("frequency")}
+              />
+              Wochenziel (x-mal pro Woche)
+            </label>
+            <label className="rounded-lg border border-slate-700 p-2 text-sm text-slate-200">
+              <input
+                className="mr-2"
+                type="radio"
+                name="habit_schedule_mode_ui"
+                checked={scheduleMode === "days"}
+                onChange={() => setScheduleMode("days")}
+              />
+              Konkrete Wochentage
+            </label>
+          </div>
         </div>
+
+        <DisabledFieldWrapper enabled={scheduleMode === "frequency"}>
+          <div className="space-y-1">
+            <label className="text-sm text-slate-300">Wie oft pro Woche?</label>
+            <input className="input" name="habit_frequency_per_week" type="number" min={1} max={14} defaultValue={3} required={scheduleMode === "frequency"} />
+          </div>
+        </DisabledFieldWrapper>
       </FormSection>
 
       <FormSection title="Optionale Einstellungen">
@@ -117,9 +162,9 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
           checked={habitDaysEnabled}
           onChange={setHabitDaysEnabled}
           label="Spezifische Wochentage aktivieren"
-          hint="Wenn deaktiviert, ist die Gewohnheit an jedem Tag möglich."
+          hint="Nur verfügbar, wenn oben „Konkrete Wochentage“ gewählt wurde."
         >
-          <DisabledFieldWrapper enabled={habitDaysEnabled}>
+          <DisabledFieldWrapper enabled={habitDaysEnabled && scheduleMode === "days"}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {WEEKDAY_OPTIONS.map((day) => (
                 <label key={day.value} className="rounded-lg border border-slate-700 px-2 py-1 text-sm text-slate-200">
@@ -149,6 +194,9 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
             </div>
           </DisabledFieldWrapper>
         </OptionalFieldToggle>
+        {scheduleMode === "days" && !habitDaysEnabled && (
+          <p className="text-xs text-amber-300">Tipp: Aktiviere den Toggle für Wochentage, um konkrete Tage zu wählen.</p>
+        )}
       </FormSection>
 
       <button className="btn-primary w-full" type="submit" disabled={loading}>
