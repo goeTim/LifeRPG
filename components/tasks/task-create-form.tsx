@@ -58,7 +58,7 @@ export function TaskCreateForm({ skills }: { skills: Skill[] }) {
           setSkillXpEnabled(false);
           setDueDateEnabled(false);
           setAttributeXpEnabled(false);
-          router.refresh();
+          router.push("/tasks/open");
         } catch {
           setError("Beim Speichern ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.");
         } finally {

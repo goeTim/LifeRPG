@@ -70,7 +70,7 @@ export function HabitCreateForm({ skills }: { skills: Skill[] }) {
           setSkillXpEnabled(false);
           setAttributeXpEnabled(false);
           setScheduleMode("frequency");
-          router.refresh();
+          router.push("/tasks/open");
         } catch {
           setError("Beim Speichern ist ein unerwarteter Fehler aufgetreten. Bitte versuche es erneut.");
         } finally {

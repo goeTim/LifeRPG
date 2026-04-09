@@ -60,6 +60,9 @@ export default async function DashboardPage() {
             <Link className="btn-primary inline-flex" href="/tasks">
               Neues Task / Gewohnheit erstellen
             </Link>
+            <Link className="rounded-xl border border-cyan-700 px-4 py-2 font-semibold text-cyan-300" href="/tasks/open">
+              Offene Tasks
+            </Link>
             <Link className="rounded-xl border border-slate-600 px-4 py-2 font-semibold" href="/profile">
               Zur Profilseite
             </Link>
